@@ -1,3 +1,5 @@
+"use client";
+import { cn } from "@/lib/utils";
 import { Dialog, DialogPanel, Transition } from "@headlessui/react";
 import { Fragment, useMemo, useRef } from "react";
 
@@ -50,12 +52,12 @@ export default function Modal({
     "w-full transform overflow-y-auto scrollbar-hide bg-[#fff] text-left align-middle shadow-xl transition-all",
     isSidePanel ? "h-screen rounded-none" : "rounded-[10px]",
     panelClassName,
-    sizeClassName,
+    sizeClassName
   );
 
   const dialogClassNames = cn(
     "relative z-[1050] dialog-class",
-    dialogClassName,
+    dialogClassName
   );
 
   const closeDialog = () => {
@@ -100,12 +102,15 @@ export default function Modal({
             <div className="fixed inset-0 bg-black bg-opacity-25" />
           </Transition.Child>
 
-          <div className="fixed inset-0 overflow-y-auto scrollbar-hide" ref={refDiv}>
+          <div
+            className="fixed inset-0 overflow-y-auto scrollbar-hide"
+            ref={refDiv}
+          >
             <div
               className={cn(
                 "flex min-h-full text-center",
                 isSidePanel ? "" : "p-4",
-                positionClassName,
+                positionClassName
               )}
             >
               <DialogPanel className={panelClassNames}>{children}</DialogPanel>

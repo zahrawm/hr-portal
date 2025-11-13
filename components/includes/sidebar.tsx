@@ -1,13 +1,14 @@
-"use-client";
+"use client";
 
 import { useLocation } from "@/app/hooks/location";
 import { cn } from "@/lib/utils";
-import { Link } from "@inertiajs/react";
-import { ChevronDown, ChevronUp, LogOutIcon } from "lucide-react";
+
+import { ChevronDown, ChevronUp, LogOutIcon, Menu, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import chart from "../../../../public/img/chart.svg";
 import home from "../../../../public/img/home.svg";
-import toggler from "../../../../public/img/sidebar_toggle_button.svg";
+import Link from "next/link";
+
 import wallet from "../../../../public/img/wallet2.svg";
 
 type NavLink = {
@@ -49,13 +50,6 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       isImage: true,
       activeKey: "roles",
     },
-    // {
-    //   href: route("web.payments.grain-purchases.index"),
-    //   label: "Payments",
-    //   icon: wallet,
-    //   isImage: true,
-    //   activeKey: "payments",
-    // },
     {
       href: "/employeeslist",
       label: "Employees List",
@@ -110,29 +104,36 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
     <>
       {/* ........Sidebar toggle..........*/}
       <button
-        className="fixed z-50 cursor-pointer transition-all duration-300"
+        className="fixed z-50 cursor-pointer transition-all duration-300 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
         style={{
-          left: isOpen ? "225px" : "40px",
-          top: isOpen ? "98px" : "80px",
-          width: isOpen ? "48px" : "40px",
+          left: isOpen ? "248px" : "8px",
+          top: "120px",
+          width: "32px",
+          height: "32px",
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
-        <img src={toggler} alt="sidebar_toggler" />
+        {isOpen ? (
+          <X size={20} className="text-gray-600 dark:text-gray-300" />
+        ) : (
+          <Menu size={20} className="text-gray-600 dark:text-gray-300" />
+        )}
       </button>
 
       {/* ....Sidebar........ */}
       <nav
         className={cn(
-          "fixed left-0 top-16 z-20 h-[calc(100vh-4rem)] origin-left transform overflow-y-auto border-r border-[#D6D8DA] bg-white transition-all duration-300",
+          "fixed left-0 top-14 z-20 h-[calc(100vh-3.5rem)] origin-left transform overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300",
           isOpen ? "w-64" : "w-16"
         )}
       >
         <div className="flex h-full flex-col">
           {/* Main Menu Label */}
           {isOpen && (
-            <div className="px-4 pb-2 pt-8">
-              <p className="text-xs font-medium text-gray-500">Main Menu</p>
+            <div className="px-4 pb-2 pt-4">
+              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                Main Menu
+              </p>
             </div>
           )}
 
@@ -140,7 +141,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
           <div
             className={cn(
               "flex flex-1 flex-col gap-1",
-              isOpen ? "px-4" : "px-2 pt-8"
+              isOpen ? "px-4" : "px-2 pt-4"
             )}
           >
             {navLinks.map((link) => {
@@ -154,7 +155,9 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                   className={cn(
                     "flex items-center gap-3 rounded-lg transition-colors",
                     isOpen ? "h-[44px] px-3 py-2" : "h-12 justify-center py-3",
-                    isActive ? "bg-[#E8F5E9]" : "hover:bg-gray-50"
+                    isActive
+                      ? "bg-[#E8F5E9] dark:bg-emerald-900/30"
+                      : "hover:bg-green-50 dark:hover:bg-emerald-900/20"
                   )}
                   title={!isOpen ? link.label : undefined}
                 >
@@ -176,7 +179,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                   </div>
 
                   {isOpen && (
-                    <span className="text-sm font-normal text-[#333333]">
+                    <span className="text-sm font-normal text-gray-900 dark:text-gray-100">
                       {link.label}
                     </span>
                   )}
@@ -185,47 +188,40 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
             })}
           </div>
 
-          {/* ...Logout.... */}
-          {/* <div className={cn("border-t border-gray-200 p-4")}>
-            <button
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg py-2 text-[#333333] transition-colors hover:bg-gray-50",
-                isOpen ? "px-3" : "justify-center"
-              )}
-              title={!isOpen ? "Logout" : undefined}
-            >
-              <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
-                <LogOutIcon size={20} />
-              </div>
-              {isOpen && <span className="text-sm font-normal">Logout</span>}
-            </button>
-          </div> */}
-          <div className="p-3 border-t border-gray-200">
+          <div className="p-3 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
             >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xl">
-                  {user.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-medium text-gray-900">
-                    {user.name}
-                  </div>
-                  <div className="text-xs text-gray-500">
+              {isOpen ? (
+                <>
+                  <div className="flex items-center space-x-3">
                     <img
                       src="../img/apraku.svg"
                       alt="user icon"
-                      className="inline w-4 h-4"
+                      className="w-10 h-10 rounded-full object-cover"
                     />
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Kofi Ampraku
+                      </div>
+                      <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Admin
+                      </h1>
+                    </div>
                   </div>
-                </div>
-              </div>
-              {isUserMenuOpen ? (
-                <ChevronUp size={16} className="text-gray-400" />
+                  <img
+                    src="../img/arrow.svg"
+                    alt="user icon"
+                    className="w-4 h-4 rounded-full object-cover mx-auto"
+                  />
+                </>
               ) : (
-                <ChevronDown size={16} className="text-gray-400" />
+                <img
+                  src="../img/apraku.svg"
+                  alt="user icon"
+                  className="w-8 h-8 rounded-full object-cover mx-auto"
+                />
               )}
             </button>
           </div>

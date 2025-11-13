@@ -1,29 +1,24 @@
 "use client";
-import Title from "@base/resources/js/components/title";
+
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import "flatpickr/dist/themes/material_blue.css";
-import { Edit, Ellipsis, Eye, RotateCcw, Trash2 } from "lucide-react";
-import { useState } from "react";
-
-import DetailsModal from "./details";
-import ViewDetails from "./users_details";
-import Modal from "../layout/modal";
+import { Edit, Ellipsis, Eye, RotateCcw, Search, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type tableData = {
-  name: string;
-  country: string;
-  phoneNumber: string;
+  actions: string;
+  departmentName: string;
+  description: string;
+  department: string;
+  status: string;
   dateCreated: string;
   role: string;
-  actions: string;
 };
 
 interface TableProps {
@@ -31,26 +26,18 @@ interface TableProps {
 }
 
 export default function UserTable({ tableDetails }: TableProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [data] = useState(() => [...tableDetails]);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGloablFilter] = useState("");
-  const [dateRange, setDateRange] = useState<Date[]>([]);
-  const columnHelper = createColumnHelper<tableData>();
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
   );
 
-  // Added missing state declarations
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showResetPinModal, setShowResetPinModal] = useState(false);
-  const [showEditApprovalModal, setShowEditApprovalModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<any>(null);
 
-  // Added missing functions
   const closeModal = () => {
     setShowViewModal(false);
     setShowEditModal(false);
@@ -60,97 +47,140 @@ export default function UserTable({ tableDetails }: TableProps) {
     setShowApproveModal(false);
   };
 
-  const handleUserAddSuccess = () => {
-    // Handle success logic here
-    setShowViewModal(false);
-  };
-
   const handleDelete = () => {
-    // Handle delete logic here
     console.log("Deleting user:", selectedConflict);
     closeModal();
   };
 
   const handleResetPin = () => {
-    // Handle reset PIN logic here
     console.log("Resetting PIN for user:", selectedConflict);
     closeModal();
   };
 
-  const columns = [
-    columnHelper.accessor("name", {
-      cell: (info) => (
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2F3F5] px-2.5 sm:h-9 sm:w-9 md:h-10 md:w-10">
-            <span className="text-xs font-normal text-[#000] sm:text-[13px] md:text-[15px]">
-              {info
-                .getValue()
-                .split(" ")
-                .map((n) => n[0])
-                .join("")}
-            </span>
-          </div>
-          <span className="text-xs font-normal text-[#080808] sm:text-[13px] md:text-[14px]">
-            {info.getValue()}
-          </span>
-        </div>
-      ),
-      header: () => <Title text="Name" level={7} weight="normal" />,
-    }),
-    columnHelper.accessor("phoneNumber", {
-      cell: (info) => (
-        <span className="text-xs font-normal text-[#080808] sm:text-[13px] md:text-[14px]">
-          {info.getValue()}
-        </span>
-      ),
-      header: () => <Title text="Phone Number" level={7} weight="normal" />,
-    }),
-    columnHelper.accessor("dateCreated", {
-      cell: (info) => (
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <span className="truncate text-center text-sm font-normal text-[#080808] sm:text-[15px] md:text-[16px]">
-            {info.getValue()}
-          </span>
-        </div>
-      ),
-      header: () => <Title text="Date Created" level={7} weight="normal" />,
-    }),
-    columnHelper.accessor("role", {
-      cell: (info) => (
-        <span className="text-xs font-normal text-[#080808] sm:text-[13px] md:text-[14px]">
-          {info.getValue()}
-        </span>
-      ),
-      header: () => <Title text="Role" level={7} weight="normal" />,
-    }),
+  const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
+  const [searchTerm, setSearchTerm] = useState("");
 
+  const columnHelper = createColumnHelper<tableData>();
+
+  const columns = [
+    columnHelper.accessor("dateCreated", {
+      cell: (info) => {
+        const dateValue = info.getValue();
+        const date = new Date(dateValue);
+
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          // If invalid date, just display the original string
+          return (
+            <span className="text-sm text-gray-900 dark:text-gray-100">
+              {dateValue}
+            </span>
+          );
+        }
+
+        const formattedDate = date
+          .toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          })
+          .replace(/\//g, "/");
+        const formattedTime = date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
+        return (
+          <span className="text-sm text-gray-900 dark:text-gray-100">{`${formattedDate} | ${formattedTime}`}</span>
+        );
+      },
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Date Created
+        </span>
+      ),
+      size: 150,
+    }),
+    columnHelper.accessor("departmentName", {
+      cell: (info) => (
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
+      ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Department Name
+        </span>
+      ),
+      size: 150,
+    }),
+    columnHelper.accessor("description", {
+      cell: (info) => (
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
+      ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Description
+        </span>
+      ),
+      size: 200,
+    }),
+    columnHelper.accessor("status", {
+      cell: (info) => (
+        <div className="flex items-center gap-2">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              info.getValue() === "Active"
+                ? "bg-green-500"
+                : "bg-gray-300 dark:bg-gray-600"
+            }`}
+          ></span>
+          <span
+            className={`text-sm font-medium ${
+              info.getValue() === "Active"
+                ? "text-gray-900 dark:text-gray-100"
+                : "text-gray-400 dark:text-gray-500"
+            }`}
+          >
+            {info.getValue()}
+          </span>
+        </div>
+      ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Status
+        </span>
+      ),
+      size: 100,
+    }),
     columnHelper.accessor("actions", {
       cell: (info) => (
-        <div className="relative flex items-center">
+        <div className="relative flex items-center justify-start">
           <button
             onClick={() =>
               setOpenDropdownIndex(
                 openDropdownIndex === info.row.index ? null : info.row.index
               )
             }
-            className="flex items-center justify-center rounded-full border p-1 text-gray-400 hover:text-gray-600"
+            className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <Ellipsis className="h-4 w-4 items-center sm:h-5 sm:w-5" />
+            <Ellipsis className="h-5 w-5" />
           </button>
           {openDropdownIndex === info.row.index && (
-            <div className="absolute right-0 z-10 mt-2 w-36 rounded-lg border border-gray-200 bg-white shadow-lg">
+            <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               <button
                 onClick={() => {
                   setShowViewModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <Eye className="h-4 w-4 text-gray-500" />
+                <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 View
               </button>
-
               <button
                 onClick={() => {
                   setShowEditModal(true);
@@ -158,112 +188,146 @@ export default function UserTable({ tableDetails }: TableProps) {
                   setOpenDropdownIndex(null);
                   setShowApproveModal(true);
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <Edit className="h-4 w-4 text-gray-500" />
+                <Edit className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 Edit
               </button>
-
               <button
                 onClick={() => {
                   setShowResetPinModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
-                  setShowEditApprovalModal(true);
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <RotateCcw className="h-4 w-4 text-gray-500" />
+                <RotateCcw className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 Reset PIN
               </button>
-
               <button
                 onClick={() => {
                   setShowDeleteModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <Trash2 className="h-4 w-4 text-gray-500" />
+                <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 Delete
               </button>
             </div>
           )}
         </div>
       ),
-      header: () => <Title text="Actions" level={7} weight="normal" />,
-      meta: {
-        className: "sticky right-0 bg-white z-10 w-[80px]",
-      },
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Actions
+        </span>
+      ),
+      size: 80,
     }),
   ];
 
   const table = useReactTable<tableData>({
-    data,
+    data: filteredData,
     columns,
     state: {
       sorting,
-      globalFilter,
     },
     initialState: {
       pagination: {
-        pageSize: 4,
+        pageSize: 6,
       },
     },
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
-    onGlobalFilterChange: setGloablFilter,
-    getFilteredRowModel: getFilteredRowModel(),
   });
 
-  const sort = [
-    { id: "gh", name: "Admin" },
-    { id: "de", name: "Paymasters" },
-    { id: "es", name: "Field Agents" },
-  ];
-  const status = [
-    { id: "gh", name: "Pending" },
-    { id: "de", name: "Approved" },
-    { id: "es", name: "Denied" },
-    { id: "es", name: "Successful" },
-    { id: "es", name: "Failed" },
-  ];
-  const payment = [
-    { id: "gh", name: "Cash Payment" },
-    { id: "de", name: "Mobile Money" },
-    { id: "es", name: "Bank Transfer" },
-  ];
-  const handleCountryApply = (selectedIds: string[]) => {
-    console.log("Selected countries:", selectedIds);
-  };
+  useEffect(() => {
+    let result = [...tableDetails];
+
+    if (searchTerm) {
+      result = result.filter(
+        (row) =>
+          row.departmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          row.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          row.status.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredData(result);
+  }, [searchTerm, tableDetails]);
 
   return (
     <>
-      <div className="scrollbar-hide mx-auto flex min-h-screen flex-col">
-        {/* ......Table Container....... */}
-        <div className="overflow-x-hidden rounded-lg border bg-white shadow-sm">
-          <table className="w-full min-w-[800px] divide-y divide-gray-200">
-            <thead className="whitespace-nowrap border border-[#E2E2E2] bg-[#F6F6F7]">
+      <div className="w-full bg-white dark:bg-gray-900 p-6">
+        {/* Search and Actions Bar */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+            <input
+              type="text"
+              placeholder="Type or search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
+            />
+          </div>
+          <button className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+              />
+            </svg>
+            Filter by
+          </button>
+
+          <button
+            onClick={() => {}}
+            className="ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center gap-2"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth="2"
+            >
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="2" fill="white" fillOpacity="0.4" />
+            </svg>
+            Create Department
+          </button>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((headers) => (
-                    <th
-                      key={headers.id}
-                      className="w-10 px-2 py-3 text-left text-[14px] font-normal tracking-wider text-gray-800"
-                    >
+                  {headerGroup.headers.map((header) => (
+                    <th key={header.id} className="px-2 py-3 text-left">
                       <div
                         {...{
-                          className: headers.column.getCanSort()
-                            ? "cursor-pointer select-none flex items-center"
-                            : "flex items-center",
-                          onClick: headers.column.getToggleSortingHandler(),
+                          className: header.column.getCanSort()
+                            ? "cursor-pointer select-none"
+                            : "",
+                          onClick: header.column.getToggleSortingHandler(),
                         }}
                       >
                         {flexRender(
-                          headers.column.columnDef.header,
-                          headers.getContext()
+                          header.column.columnDef.header,
+                          header.getContext()
                         )}
                       </div>
                     </th>
@@ -271,16 +335,14 @@ export default function UserTable({ tableDetails }: TableProps) {
                 </tr>
               ))}
             </thead>
-
-            {/* ....Table Body.......... */}
-            <tbody className="divide-y divide-gray-200 border bg-white">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50">
+                <tr
+                  key={row.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
                   {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="whitespace-nowrap px-2 py-2 text-[#080808] md:py-3"
-                    >
+                    <td key={cell.id} className="px-2 py-3">
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -291,68 +353,48 @@ export default function UserTable({ tableDetails }: TableProps) {
               ))}
             </tbody>
           </table>
+
+          {/* Pagination - Inside Table */}
+          <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              0 of {filteredData.length} row(s) selected.
+            </div>
+            <div className="flex gap-2">
+              <button className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Previous
+              </button>
+              <button className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* View Modal */}
-      {showViewModal && (
-        <Modal visible={showViewModal} position="right">
-          <ViewDetails
-            onClose={closeModal}
-            visible={showViewModal}
-            onSuccess={handleUserAddSuccess}
-            mode="view"
-          />
-        </Modal>
-      )}
-
-      {showApproveModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div
-            className="absolute inset-0 bg-black opacity-50"
-            onClick={closeModal}
-          ></div>
-          <div className="relative z-[60] rounded-lg bg-white shadow-lg">
-            <DetailsModal
-              onClose={closeModal}
-              visible={showApproveModal}
-              onSuccess={handleUserAddSuccess}
-              mode="edit"
-              headerTitle={"Edit User"}
-            />
-          </div>
-        </div>
-      )}
-
+      {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
-          <div className="relative z-[60] w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+          <div className="relative z-[60] w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-xl">
             <button
               onClick={closeModal}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-400 hover:bg-gray-50"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               ✕
             </button>
 
             <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                <svg
-                  className="h-10 w-10 text-red-500"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z" />
-                </svg>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30">
+                <Trash2 className="h-10 w-10 text-red-500" />
               </div>
 
-              <h3 className="text-xl font-semibold text-gray-900">
-                Are you sure you want to delete this user?
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Are you sure you want to delete this department?
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 This action cannot be undone
               </p>
 
@@ -365,7 +407,7 @@ export default function UserTable({ tableDetails }: TableProps) {
                 </button>
                 <button
                   onClick={closeModal}
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -375,41 +417,30 @@ export default function UserTable({ tableDetails }: TableProps) {
         </div>
       )}
 
+      {/* Reset PIN Modal */}
       {showResetPinModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
-          <div className="relative z-[60] w-full max-w-md rounded-2xl bg-white p-8 shadow-xl">
+          <div className="relative z-[60] w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-xl">
             <button
               onClick={closeModal}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 text-gray-400 hover:bg-gray-50"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               ✕
             </button>
 
             <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50">
-                <svg
-                  className="h-10 w-10 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                  />
-                </svg>
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-50 dark:bg-yellow-900/30">
+                <RotateCcw className="h-10 w-10 text-yellow-500" />
               </div>
 
-              <h3 className="text-xl font-semibold text-gray-900">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Are you sure you want to reset this user's PIN?
               </h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                 This action will invalidate their current PIN and require them
                 to create a new one.
               </p>
@@ -423,7 +454,7 @@ export default function UserTable({ tableDetails }: TableProps) {
                 </button>
                 <button
                   onClick={closeModal}
-                  className="flex-1 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>

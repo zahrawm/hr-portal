@@ -1,19 +1,23 @@
-import { FlashMessage, LayoutProps } from "@/lib/utils/constants";
-import { usePage } from "@inertiajs/react";
+"use client";
+import { LayoutProps } from "@/lib/utils/constants";
 import { useEffect } from "react";
 import { toast, Toaster } from "sonner";
+import { useSearchParams } from "next/navigation";
 
 export function DefaultLayout({ children }: LayoutProps) {
-  const { flash } = usePage<{ flash: FlashMessage }>().props;
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (flash.success) {
-      toast.success(flash.success, { closeButton: true });
+    const success = searchParams.get("success");
+    const error = searchParams.get("error");
+
+    if (success) {
+      toast.success(success, { closeButton: true });
     }
-    if (flash.error) {
-      toast.error(flash.error, { closeButton: true });
+    if (error) {
+      toast.error(error, { closeButton: true });
     }
-  }, [flash]);
+  }, [searchParams]);
 
   return (
     <>
