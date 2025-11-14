@@ -99,7 +99,7 @@ export default function UserTable({ tableDetails }: TableProps) {
           Date Created
         </span>
       ),
-      size: 150,
+      size: 180,
     }),
     columnHelper.accessor("departmentName", {
       cell: (info) => (
@@ -112,7 +112,7 @@ export default function UserTable({ tableDetails }: TableProps) {
           Department Name
         </span>
       ),
-      size: 150,
+      size: 180,
     }),
     columnHelper.accessor("description", {
       cell: (info) => (
@@ -125,7 +125,7 @@ export default function UserTable({ tableDetails }: TableProps) {
           Description
         </span>
       ),
-      size: 200,
+      size: 300,
     }),
     columnHelper.accessor("status", {
       cell: (info) => (
@@ -153,7 +153,7 @@ export default function UserTable({ tableDetails }: TableProps) {
           Status
         </span>
       ),
-      size: 100,
+      size: 120,
     }),
     columnHelper.accessor("actions", {
       cell: (info) => (
@@ -298,12 +298,12 @@ export default function UserTable({ tableDetails }: TableProps) {
             <svg
               className="h-4 w-4"
               fill="none"
-              stroke="currentColor"
               viewBox="0 0 24 24"
+              stroke="currentColor"
               strokeWidth="2"
             >
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="2" fill="white" fillOpacity="0.4" />
+              <circle cx="12" cy="12" r="7" />
+              <path d="M12 9v6M9 12h6" strokeLinecap="round" />
             </svg>
             Create Department
           </button>
