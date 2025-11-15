@@ -378,40 +378,28 @@ export default function UserTable({ tableDetails }: TableProps) {
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
-          <div className="relative z-[60] w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-xl">
-            <button
-              onClick={closeModal}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              ✕
-            </button>
+          <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Delete this?
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to delete a Department?
+            </p>
 
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-50 dark:bg-red-900/30">
-                <Trash2 className="h-10 w-10 text-red-500" />
-              </div>
-
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Are you sure you want to delete this department?
-              </h3>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                This action cannot be undone
-              </p>
-
-              <div className="mt-6 flex w-full gap-3">
-                <button
-                  onClick={handleDelete}
-                  className="flex-1 rounded-lg bg-yellow-500 px-6 py-3 text-sm font-medium text-white hover:bg-yellow-600"
-                >
-                  Yes, Delete
-                </button>
-                <button
-                  onClick={closeModal}
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={closeModal}
+                className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocation } from "@/app/hooks/location";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 import { ChevronDown, ChevronUp, LogOutIcon, Menu, X } from "lucide-react";
@@ -32,7 +32,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
-  const location = useLocation();
+  const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navLinks: NavLink[] = [
@@ -88,17 +88,15 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   ];
 
   const activeTab = useMemo(() => {
-    if (location.pathname?.includes("/department")) return "department";
-    if (location.pathname?.includes("/roles")) return "roles";
-    if (location.pathname?.includes("/employeeslist")) return "employees list";
-    if (location.pathname?.includes("/manageEmployees"))
-      return "manage employees";
-    if (location.pathname?.includes("/employeesProfile"))
-      return "employees profile";
-    if (location.pathname?.includes("/leaveRequests")) return "leave requests";
-    if (location.pathname?.includes("/attendance")) return "attendance";
+    if (pathname?.includes("/department")) return "department";
+    if (pathname?.includes("/roles")) return "roles";
+    if (pathname?.includes("/employeeslist")) return "employees list";
+    if (pathname?.includes("/manageEmployees")) return "manage employees";
+    if (pathname?.includes("/employeesProfile")) return "employees profile";
+    if (pathname?.includes("/leaveRequests")) return "leave requests";
+    if (pathname?.includes("/attendance")) return "attendance";
     return "";
-  }, [location]);
+  }, [pathname]);
 
   return (
     <>
