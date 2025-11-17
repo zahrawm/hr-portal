@@ -5,11 +5,16 @@ import {
   flexRender,
   getCoreRowModel,
   getSortedRowModel,
+  getPaginationRowModel,
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
 import { Edit, Ellipsis, Eye, RotateCcw, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Modal from "../layout/modal";
+import DepartmentModal from "../layout/create-department-modal";
+import { Toast } from "./toast";
+import EditDepartmentModal from "../layout/edit-department-modal";
 
 type tableData = {
   actions: string;
@@ -36,7 +41,12 @@ export default function UserTable({ tableDetails }: TableProps) {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showResetPinModal, setShowResetPinModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<any>(null);
+  const [newDepartmentName, setNewDepartmentName] = useState("");
+  const [newDepartmentDescription, setNewDepartmentDescription] = useState("");
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
 
   const closeModal = () => {
     setShowViewModal(false);
@@ -47,18 +57,54 @@ export default function UserTable({ tableDetails }: TableProps) {
     setShowApproveModal(false);
   };
 
-  const handleDelete = () => {
-    console.log("Deleting user:", selectedConflict);
-    closeModal();
-  };
-
   const handleResetPin = () => {
     console.log("Resetting PIN for user:", selectedConflict);
     closeModal();
   };
+  const handleUserAddSuccess = () => {
+    setShowViewModal(false);
+    setToastMessage("Department Successfully Created");
+    setShowToast(true);
+  };
+
+  const handleDelete = () => {
+    console.log("Deleting user:", selectedConflict);
+    closeModal();
+    setToastMessage("Department Deleted Successfully");
+    setShowToast(true);
+  };
+
+  const handleEditSuccess = () => {
+    setShowEditModal(false);
+    setShowApproveModal(false);
+    setToastMessage("Department Edited Successfully");
+    setShowToast(true);
+  };
 
   const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterBy, setFilterBy] = useState<"all" | "name" | "description">(
+    "all"
+  );
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
+  useEffect(() => {
+    const filtered = tableDetails.filter((item) => {
+      const searchLower = searchTerm.toLowerCase();
+
+      if (filterBy === "name") {
+        return item.departmentName.toLowerCase().includes(searchLower);
+      } else if (filterBy === "description") {
+        return item.description.toLowerCase().includes(searchLower);
+      } else {
+        return (
+          item.departmentName.toLowerCase().includes(searchLower) ||
+          item.description.toLowerCase().includes(searchLower)
+        );
+      }
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, filterBy, tableDetails]);
 
   const columnHelper = createColumnHelper<tableData>();
 
@@ -172,43 +218,37 @@ export default function UserTable({ tableDetails }: TableProps) {
             <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               <button
                 onClick={() => {
-                  setShowViewModal(true);
-                  setSelectedConflict(info.row.original);
-                  setOpenDropdownIndex(null);
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <Eye className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                View
-              </button>
-              <button
-                onClick={() => {
                   setShowEditModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
-                  setShowApproveModal(true);
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <Edit className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 Edit
               </button>
-              <button
-                onClick={() => {
-                  setShowResetPinModal(true);
-                  setSelectedConflict(info.row.original);
-                  setOpenDropdownIndex(null);
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <RotateCcw className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                Reset PIN
-              </button>
+              {showEditModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                  <div
+                    className="absolute inset-0 bg-black opacity-50"
+                    onClick={closeModal}
+                  ></div>
+                  <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
+                    <EditDepartmentModal
+                      onClose={closeModal}
+                      visible={showEditModal}
+                      onSuccess={handleEditSuccess}
+                    />
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={() => {
                   setShowDeleteModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
+                  const onSuccess = { handleDelete };
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
@@ -242,29 +282,15 @@ export default function UserTable({ tableDetails }: TableProps) {
     getCoreRowModel: getCoreRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
   });
-
-  useEffect(() => {
-    let result = [...tableDetails];
-
-    if (searchTerm) {
-      result = result.filter(
-        (row) =>
-          row.departmentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          row.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          row.status.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    setFilteredData(result);
-  }, [searchTerm, tableDetails]);
 
   return (
     <>
-      <div className="w-full bg-white dark:bg-gray-900 p-6">
+      <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
         {/* Search and Actions Bar */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="relative flex-1 max-w-md">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+          <div className="relative flex-1 w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
@@ -274,26 +300,128 @@ export default function UserTable({ tableDetails }: TableProps) {
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
             />
           </div>
-          <button className="flex items-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          {/* Add this after the search bar and before the table */}
+          {filteredData.length === 0 && tableDetails.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+                <svg
+                  className="h-8 w-8 text-gray-400 dark:text-gray-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                No results found
+              </h3>
+
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
+                We could not find matching results for your search. Click the
+                "clear filters" button to try again
+              </p>
+
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setFilterBy("all");
+                }}
+                className="flex items-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M15 9l-6 6M9 9l6 6" strokeLinecap="round" />
+                </svg>
+                Clear Filter
+              </button>
+            </div>
+          )}
+
+          {/* Only show table if there are filtered results */}
+          {filteredData.length > 0 && (
+            <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+              {/* Your existing table code */}
+            </div>
+          )}
+
+          <div className="relative w-full sm:w-auto">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-              />
-            </svg>
-            Filter by
-          </button>
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              <span className="truncate">
+                Filter by:{" "}
+                {filterBy === "all"
+                  ? "All"
+                  : filterBy === "name"
+                  ? "Name"
+                  : "Description"}
+              </span>
+            </button>
+            {showFilterDropdown && (
+              <div className="absolute right-0 top-12 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+                <button
+                  onClick={() => {
+                    setFilterBy("all");
+                    setShowFilterDropdown(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterBy("name");
+                    setShowFilterDropdown(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Name
+                </button>
+                <button
+                  onClick={() => {
+                    setFilterBy("description");
+                    setShowFilterDropdown(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Description
+                </button>
+              </div>
+            )}
+          </div>
 
           <button
-            onClick={() => {}}
-            className="ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center gap-2"
+            onClick={() => {
+              setShowViewModal(true);
+            }}
+            className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
           >
             <svg
               className="h-4 w-4"
@@ -307,63 +435,89 @@ export default function UserTable({ tableDetails }: TableProps) {
             </svg>
             Create Department
           </button>
+          {/* AddNewUserForm Modal */}
+          {showViewModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div
+                className="absolute inset-0 bg-black opacity-50"
+                onClick={closeModal}
+              ></div>
+              <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
+                <DepartmentModal
+                  onClose={closeModal}
+                  visible={showViewModal}
+                  onSuccess={handleUserAddSuccess}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Table */}
         <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <tr key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <th key={header.id} className="px-2 py-3 text-left">
-                      <div
-                        {...{
-                          className: header.column.getCanSort()
-                            ? "cursor-pointer select-none"
-                            : "",
-                          onClick: header.column.getToggleSortingHandler(),
-                        }}
-                      >
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
+              <thead className="bg-gray-50 dark:bg-gray-800">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <tr key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <th key={header.id} className="px-2 py-3 text-left">
+                        <div
+                          {...{
+                            className: header.column.getCanSort()
+                              ? "cursor-pointer select-none"
+                              : "",
+                            onClick: header.column.getToggleSortingHandler(),
+                          }}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                ))}
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
+                {table.getRowModel().rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id} className="px-2 py-3">
                         {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
+                          cell.column.columnDef.cell,
+                          cell.getContext()
                         )}
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              ))}
-            </thead>
-            <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-900">
-              {table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3">
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
           {/* Pagination - Inside Table */}
-          <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 gap-3">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               0 of {filteredData.length} row(s) selected.
             </div>
-            <div className="flex gap-2">
-              <button className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                className="flex-1 sm:flex-none rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Previous
               </button>
-              <button className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+              <button
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                className="flex-1 sm:flex-none rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Next
               </button>
             </div>
@@ -386,16 +540,16 @@ export default function UserTable({ tableDetails }: TableProps) {
               Are you sure you want to delete a Department?
             </p>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={closeModal}
-                className="rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="flex items-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
                 <Trash2 className="h-4 w-4" />
                 Delete
@@ -404,53 +558,12 @@ export default function UserTable({ tableDetails }: TableProps) {
           </div>
         </div>
       )}
-
-      {/* Reset PIN Modal */}
-      {showResetPinModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black opacity-50"
-            onClick={closeModal}
-          ></div>
-          <div className="relative z-[60] w-full max-w-md rounded-2xl bg-white dark:bg-gray-900 p-8 shadow-xl">
-            <button
-              onClick={closeModal}
-              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
-              ✕
-            </button>
-
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-50 dark:bg-yellow-900/30">
-                <RotateCcw className="h-10 w-10 text-yellow-500" />
-              </div>
-
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Are you sure you want to reset this user's PIN?
-              </h3>
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                This action will invalidate their current PIN and require them
-                to create a new one.
-              </p>
-
-              <div className="mt-6 flex w-full gap-3">
-                <button
-                  onClick={handleResetPin}
-                  className="flex-1 rounded-lg bg-yellow-500 px-6 py-3 text-sm font-medium text-white hover:bg-yellow-600"
-                >
-                  Yes, Reset PIN
-                </button>
-                <button
-                  onClick={closeModal}
-                  className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        visible={showToast}
+        onClose={() => setShowToast(false)}
+      />
     </>
   );
 }
