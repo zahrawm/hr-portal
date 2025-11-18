@@ -18,7 +18,7 @@ import EditDepartmentModal from "../layout/edit-department-modal";
 
 type tableData = {
   actions: string;
-  departmentName: string;
+  roleName: string;
   description: string;
   department: string;
   status: string;
@@ -30,7 +30,7 @@ interface TableProps {
   tableDetails: tableData[];
 }
 
-export default function UserTable({ tableDetails }: TableProps) {
+export default function RoleTable({ tableDetails }: TableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -93,12 +93,12 @@ export default function UserTable({ tableDetails }: TableProps) {
       const searchLower = searchTerm.toLowerCase();
 
       if (filterBy === "name") {
-        return item.departmentName.toLowerCase().includes(searchLower);
+        return item.roleName.toLowerCase().includes(searchLower);
       } else if (filterBy === "description") {
         return item.description.toLowerCase().includes(searchLower);
       } else {
         return (
-          item.departmentName.toLowerCase().includes(searchLower) ||
+          item.roleName.toLowerCase().includes(searchLower) ||
           item.description.toLowerCase().includes(searchLower)
         );
       }
@@ -147,7 +147,7 @@ export default function UserTable({ tableDetails }: TableProps) {
       ),
       size: 180,
     }),
-    columnHelper.accessor("departmentName", {
+    columnHelper.accessor("roleName", {
       cell: (info) => (
         <span className="text-sm text-gray-900 dark:text-gray-100">
           {info.getValue()}
@@ -155,7 +155,7 @@ export default function UserTable({ tableDetails }: TableProps) {
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Department Name
+          Role Name
         </span>
       ),
       size: 180,
@@ -418,7 +418,7 @@ export default function UserTable({ tableDetails }: TableProps) {
               <circle cx="12" cy="12" r="7" />
               <path d="M12 9v6M9 12h6" strokeLinecap="round" />
             </svg>
-            Create Department
+            Add Profile
           </button>
           {/* AddNewUserForm Modal */}
           {showViewModal && (

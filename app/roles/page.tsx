@@ -10,12 +10,13 @@ import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/app";
 import UserTable from "@/components/ui/table";
 import DepartmentModal from "@/components/layout/create-department-modal";
+import RoleTable from "@/components/ui/roles-table";
 
 type ConflictType = User | null;
 
 interface User {
   actions: string;
-  departmentName: string;
+  roleName: string;
   description: string;
   department: string;
   status: string;
@@ -71,8 +72,8 @@ const DepartmentManagement: React.FC = () => {
   const users: User[] = [
     {
       actions: "",
-      departmentName: "Operational",
-      description: "Branding Awareness Growth.....",
+      roleName: "Product Designer",
+      description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
       department: "",
@@ -80,7 +81,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      roleName: "Product Designer",
       description: "Marketing and Sales Growth...",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -89,8 +90,8 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
-      description: "Hosting and Events Movements",
+      roleName: "Product Designer",
+      description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
       department: "",
@@ -98,8 +99,8 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
-      description: "Human Rsource Development",
+      roleName: "Product Designer",
+      description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
       department: "",
@@ -107,7 +108,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      roleName: "Product Designer",
       description: "Hoummann.",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -116,7 +117,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      roleName: "Product Designer",
       description: "Branding Awareness Growth.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -125,8 +126,8 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
-      description: "Branding Awareness Growth.....",
+      roleName: "Product Designer",
+      description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
       department: "",
@@ -134,7 +135,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      roleName: "Product Designer",
       description: "Branding Awareness Growth.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -167,18 +168,14 @@ const DepartmentManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-            <img
-              src="../img/department.svg"
-              alt="Department Icon"
-              className="h-6 w-6"
-            />
+            <img src="../img/square.svg" alt="Role Icon" className="h-6 w-6" />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Department
+              Roles
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              View the list of departments for the HR Mini
+              Manage the roles titles for the HR Mini
             </p>
           </div>
         </div>
@@ -199,8 +196,8 @@ const DepartmentManagement: React.FC = () => {
           <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
-                src="../img/department.svg"
-                alt="Department Icon"
+                src="../img/square.svg"
+                alt="Roles Icon"
                 className="h-8 w-8"
               />
             </div>
@@ -273,7 +270,7 @@ const DepartmentManagement: React.FC = () => {
         // Table with data
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
-            <UserTable tableDetails={users} />
+            <RoleTable tableDetails={users} />
           </div>
         </div>
       )}
