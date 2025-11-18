@@ -9,7 +9,15 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { Edit, Ellipsis, Eye, RotateCcw, Search, Trash2 } from "lucide-react";
+import {
+  Edit,
+  Ellipsis,
+  Eye,
+  RotateCcw,
+  Search,
+  Trash,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import Modal from "../layout/modal";
 import DepartmentModal from "../layout/create-department-modal";
@@ -228,9 +236,12 @@ export default function RoleTable({ tableDetails }: TableProps) {
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
               >
-                <Edit className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <img
+                  src="../img/edit.svg"
+                  className="h-4 w-4 text-green-50 dark:text-green-50"
+                />
                 Edit
               </button>
 
@@ -241,9 +252,12 @@ export default function RoleTable({ tableDetails }: TableProps) {
                   setOpenDropdownIndex(null);
                   const onSuccess = { handleDelete };
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                <Trash2 className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                <img
+                  src="../img/bin.svg"
+                  className="h-4 w-4 text-red-500 dark:text-red-500"
+                />
                 Delete
               </button>
             </div>
@@ -542,7 +556,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
                 onClick={handleDelete}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash size={14} color="#FFF" />
                 Delete
               </button>
             </div>

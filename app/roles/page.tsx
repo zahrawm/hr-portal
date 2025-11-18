@@ -65,6 +65,41 @@ const RolesManagement: React.FC = () => {
     closeModal();
   };
 
+  const handleExportCSV = () => {
+    // Define CSV headers
+    const headers = ["Role Name", "Description", "Status", "Date Created"];
+
+    // Map roles data to CSV rows
+    const rows = roles.map((role) => [
+      role.roleName,
+      role.description,
+      role.status,
+      role.dateCreated,
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `roles_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const roles: Roles[] = [
     {
       actions: "",
@@ -175,7 +210,10 @@ const RolesManagement: React.FC = () => {
             </p>
           </div>
         </div>
-        <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-600 dark:border-gray-500 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+        <button
+          onClick={handleExportCSV}
+          className="mr-10 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-600 dark:border-gray-500 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
           <img
             src="../img/leftf.svg"
             alt="Department Icon"
