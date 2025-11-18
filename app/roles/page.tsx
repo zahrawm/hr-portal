@@ -11,10 +11,11 @@ import { AppLayout } from "@/components/layout/app";
 import UserTable from "@/components/ui/table";
 import DepartmentModal from "@/components/layout/create-department-modal";
 import RoleTable from "@/components/ui/roles-table";
+import RoleModal from "@/components/layout/add-role-modal";
 
-type ConflictType = User | null;
+type ConflictType = Roles | null;
 
-interface User {
+interface Roles {
   actions: string;
   roleName: string;
   description: string;
@@ -24,7 +25,7 @@ interface User {
   role: string;
 }
 
-const DepartmentManagement: React.FC = () => {
+const RolesManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("Ghana");
   const [selectedRole, setSelectedRole] = useState("Role");
@@ -41,7 +42,7 @@ const DepartmentManagement: React.FC = () => {
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
   );
-
+  const [showRowViewModal, setShowRowViewModal] = useState(false);
   const closeModal = () => {
     setShowViewModal(false);
     setShowEditModal(false);
@@ -60,16 +61,11 @@ const DepartmentManagement: React.FC = () => {
   };
 
   const handleDelete = () => {
-    console.log("Deleting user:", selectedConflict);
+    console.log("Deletingrole:", selectedConflict);
     closeModal();
   };
 
-  const handleResetPin = () => {
-    console.log("Resetting PIN for user:", selectedConflict);
-    closeModal();
-  };
-
-  const users: User[] = [
+  const roles: Roles[] = [
     {
       actions: "",
       roleName: "Product Designer",
@@ -153,7 +149,7 @@ const DepartmentManagement: React.FC = () => {
         <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
           <CheckCircle className="h-5 w-5 flex-shrink-0" />
           <span className="font-medium text-sm sm:text-base">
-            New user added successfully
+            New roles created successfully
           </span>
           <button
             onClick={() => setShowSuccessNotification(false)}
@@ -190,7 +186,7 @@ const DepartmentManagement: React.FC = () => {
       </div>
 
       {/* User Table or Empty State */}
-      {users.length === 0 ? (
+      {roles.length === 0 ? (
         // Empty State
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
@@ -203,19 +199,19 @@ const DepartmentManagement: React.FC = () => {
             </div>
 
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
-              No Departments yet
+              No Roles yet
             </h3>
 
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6 px-4">
-              Looks like there are no departments created on HR mini. Click the
-              "Refresh" button to reload the page or click the "Create
-              Department" button to create a department
+              Looks like there are no roles created on HR mini. Click the
+              "Refresh" button to reload the page or click the "Add Role" button
+              to add a role
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto px-4">
               <button
                 onClick={() => {
-                  setShowViewModal(true);
+                  setShowRowViewModal(true);
                 }}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
               >
@@ -229,24 +225,24 @@ const DepartmentManagement: React.FC = () => {
                   <circle cx="12" cy="12" r="7" />
                   <path d="M12 9v6M9 12h6" strokeLinecap="round" />
                 </svg>
-                Create Department
+                Add Role
               </button>
-              {showViewModal && (
+              {/* AddNewUserForm Modal */}
+              {showRowViewModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                   <div
                     className="absolute inset-0 bg-black opacity-50"
                     onClick={closeModal}
                   ></div>
                   <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-                    <DepartmentModal
+                    <RoleModal
                       onClose={closeModal}
-                      visible={showViewModal}
+                      visible={showRowViewModal}
                       onSuccess={handleUserAddSuccess}
                     />
                   </div>
                 </div>
               )}
-
               <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <svg
                   className="h-4 w-4"
@@ -270,7 +266,7 @@ const DepartmentManagement: React.FC = () => {
         // Table with data
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
-            <RoleTable tableDetails={users} />
+            <RoleTable tableDetails={roles} />
           </div>
         </div>
       )}
@@ -278,4 +274,4 @@ const DepartmentManagement: React.FC = () => {
   );
 };
 
-export default DepartmentManagement;
+export default RolesManagement;

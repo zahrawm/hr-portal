@@ -15,6 +15,9 @@ import Modal from "../layout/modal";
 import DepartmentModal from "../layout/create-department-modal";
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";
+import AddRoleModal from "../layout/add-role-modal";
+import RoleModal from "../layout/add-role-modal";
+import EditRoleModal from "../layout/edit-role-modal";
 
 type tableData = {
   actions: string;
@@ -48,6 +51,9 @@ export default function RoleTable({ tableDetails }: TableProps) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  const [showRowViewModal, setShowRowViewModal] = useState(false);
+  const [showEditRowViewModal, setShowEditRowViewModal] = useState(false);
+
   const closeModal = () => {
     setShowViewModal(false);
     setShowEditModal(false);
@@ -63,21 +69,21 @@ export default function RoleTable({ tableDetails }: TableProps) {
   };
   const handleUserAddSuccess = () => {
     setShowViewModal(false);
-    setToastMessage("Department Successfully Created");
+    setToastMessage(" Roles Successfully Created");
     setShowToast(true);
   };
 
   const handleDelete = () => {
-    console.log("Deleting user:", selectedConflict);
+    console.log("Deleting role:", selectedConflict);
     closeModal();
-    setToastMessage("Department Deleted Successfully");
+    setToastMessage("Role Deleted Successfully");
     setShowToast(true);
   };
 
   const handleEditSuccess = () => {
     setShowEditModal(false);
     setShowApproveModal(false);
-    setToastMessage("Department Edited Successfully");
+    setToastMessage("Role Edited Successfully");
     setShowToast(true);
   };
 
@@ -218,7 +224,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
             <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               <button
                 onClick={() => {
-                  setShowEditModal(true);
+                  setShowEditRowViewModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
                 }}
@@ -404,7 +410,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
 
           <button
             onClick={() => {
-              setShowViewModal(true);
+              setShowRowViewModal(true);
             }}
             className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
           >
@@ -418,19 +424,19 @@ export default function RoleTable({ tableDetails }: TableProps) {
               <circle cx="12" cy="12" r="7" />
               <path d="M12 9v6M9 12h6" strokeLinecap="round" />
             </svg>
-            Add Profile
+            Add Role
           </button>
           {/* AddNewUserForm Modal */}
-          {showViewModal && (
+          {showRowViewModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
               <div
                 className="absolute inset-0 bg-black opacity-50"
                 onClick={closeModal}
               ></div>
               <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-                <DepartmentModal
+                <RoleModal
                   onClose={closeModal}
-                  visible={showViewModal}
+                  visible={showRowViewModal}
                   onSuccess={handleUserAddSuccess}
                 />
               </div>
@@ -522,7 +528,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
               Delete this?
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to delete a Department?
+              Are you sure you want to delete a role?
             </p>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3">
@@ -545,16 +551,16 @@ export default function RoleTable({ tableDetails }: TableProps) {
       )}
 
       {/* Edit Modal */}
-      {showEditModal && (
+      {showEditRowViewModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
           <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-            <EditDepartmentModal
+            <EditRoleModal
               onClose={closeModal}
-              visible={showEditModal}
+              visible={showEditRowViewModal}
               onSuccess={handleEditSuccess}
             />
           </div>
