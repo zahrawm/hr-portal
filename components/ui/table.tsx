@@ -400,19 +400,10 @@ export default function UserTable({ tableDetails }: TableProps) {
         {filteredData.length === 0 && tableDetails.length > 0 && (
           <div className="flex flex-col items-center justify-center py-20 px-4">
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <svg
-                className="h-8 w-8 text-gray-400 dark:text-gray-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <img
+                src="../img/department.svg"
+                className="h-8 w-8 text-green-50 dark:text-green-50"
+              />
             </div>
 
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
