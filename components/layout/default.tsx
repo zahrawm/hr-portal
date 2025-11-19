@@ -1,10 +1,10 @@
 "use client";
 import { LayoutProps } from "@/lib/utils/constants";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { toast, Toaster } from "sonner";
 import { useSearchParams } from "next/navigation";
 
-export function DefaultLayout({ children }: LayoutProps) {
+function DefaultLayoutContent({ children }: LayoutProps) {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -29,5 +29,24 @@ export function DefaultLayout({ children }: LayoutProps) {
         position="top-center"
       />
     </>
+  );
+}
+
+export function DefaultLayout({ children }: LayoutProps) {
+  return (
+    <Suspense
+      fallback={
+        <>
+          {children}
+          <Toaster
+            richColors
+            toastOptions={{ duration: 6000 }}
+            position="top-center"
+          />
+        </>
+      }
+    >
+      <DefaultLayoutContent>{children}</DefaultLayoutContent>
+    </Suspense>
   );
 }
