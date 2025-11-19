@@ -12,20 +12,21 @@ import UserTable from "@/components/ui/table";
 import DepartmentModal from "@/components/layout/create-department-modal";
 import RoleTable from "@/components/ui/roles-table";
 import RoleModal from "@/components/layout/add-role-modal";
+import EmployeesListTable from "@/components/ui/employees-list";
 
-type ConflictType = Roles | null;
+type ConflictType = EmployeesList | null;
 
-interface Roles {
-  actions: string;
+interface EmployeesList {
+  name: string;
   roleName: string;
-  description: string;
+  email: string;
   department: string;
   status: string;
-  dateCreated: string;
+
   role: string;
 }
 
-const RolesManagement: React.FC = () => {
+const EmployeesList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("Ghana");
   const [selectedRole, setSelectedRole] = useState("Role");
@@ -67,13 +68,14 @@ const RolesManagement: React.FC = () => {
 
   const handleExportCSV = () => {
     // Define CSV headers
-    const headers = ["Role Name", "Description", "Status", "Date Created"];
+    const headers = ["Name", "Email", "Department", "Status", "Role Name"];
 
-    const rows = roles.map((role) => [
-      role.roleName,
-      role.description,
-      role.status,
-      role.dateCreated,
+    const rows = employeesList.map((employeesList) => [
+      employeesList.name,
+      employeesList.email,
+      employeesList.department,
+      employeesList.status,
+      employeesList.roleName,
     ]);
 
     // Combine headers and rows
@@ -90,7 +92,7 @@ const RolesManagement: React.FC = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `roles_${new Date().toISOString().split("T")[0]}.csv`
+      `employees_list_${new Date().toISOString().split("T")[0]}.csv`
     );
     link.style.visibility = "hidden";
 
@@ -99,77 +101,77 @@ const RolesManagement: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const roles: Roles[] = [
+  const employeesList: EmployeesList[] = [
     {
-      actions: "",
+      name: "John Doe",
       roleName: "Product Designer",
-      description: "Creative intuitive product.....",
+      email: "john.doe@example.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "CyberSecurity",
       role: "",
     },
     {
-      actions: "",
+      name: "John Doe",
       roleName: "Product Designer",
-      description: "Marketing and Sales Growth...",
+      email: "john.doe@example.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "CyberSecurity",
       role: "",
     },
     {
-      actions: "",
+      name: "Kwame",
       roleName: "Product Designer",
-      description: "Creative intuitive product.....",
+      email: "john.doe@example.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "Operations",
       role: "",
     },
     {
-      actions: "",
+      name: "Luke",
       roleName: "Product Designer",
-      description: "Creative intuitive product.....",
+      email: "lukesmart@gmail.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "Operations",
       role: "",
     },
     {
-      actions: "",
+      name: "Luke",
       roleName: "Product Designer",
-      description: "Hoummann.",
+      email: "lukesmart@gmail.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "Operations",
       role: "",
     },
     {
-      actions: "",
-      roleName: "Product Designer",
-      description: "Branding Awareness Growth.....",
+      name: "Linda",
+      roleName: "Product Manager",
+      email: "linda@gmail.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "Operations",
       role: "",
     },
     {
-      actions: "",
-      roleName: "Product Designer",
-      description: "Creative intuitive product.....",
+      name: "Yakubu",
+      roleName: "Product Manager",
+      email: "yakubu@gmail.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "Operations",
       role: "",
     },
     {
-      actions: "",
-      roleName: "Product Designer",
-      description: "Branding Awareness Growth.....",
+      name: "Swaatson",
+      roleName: "FullStack Engineer",
+      email: "swaatson@gmail.com",
       status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
+
+      department: "Software Engineering",
       role: "",
     },
   ];
@@ -183,7 +185,7 @@ const RolesManagement: React.FC = () => {
         <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
           <CheckCircle className="h-5 w-5 flex-shrink-0" />
           <span className="font-medium text-sm sm:text-base">
-            New roles created successfully
+            New EmployeesList created successfully
           </span>
           <button
             onClick={() => setShowSuccessNotification(false)}
@@ -198,14 +200,18 @@ const RolesManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-            <img src="../img/square.svg" alt="Role Icon" className="h-6 w-6" />
+            <img
+              src="../img/circle.svg"
+              alt="Employees List Icon"
+              className="h-6 w-6"
+            />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Roles
+              Employees List
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Manage the roles titles for the HR Mini
+              Manage the employees list for the HR Mini
             </p>
           </div>
         </div>
@@ -215,7 +221,7 @@ const RolesManagement: React.FC = () => {
         >
           <img
             src="../img/leftf.svg"
-            alt="Department Icon"
+            alt="Employees List Icon"
             className="h-4 w-4"
           />
           Export CSV
@@ -223,26 +229,26 @@ const RolesManagement: React.FC = () => {
       </div>
 
       {/* User Table or Empty State */}
-      {roles.length === 0 ? (
+      {employeesList.length === 0 ? (
         // Empty State
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
                 src="../img/square.svg"
-                alt="Roles Icon"
+                alt="Employees List Icon"
                 className="h-8 w-8"
               />
             </div>
 
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
-              No Roles yet
+              No Employees List yet
             </h3>
 
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6 px-4">
-              Looks like there are no roles created on HR mini. Click the
-              "Refresh" button to reload the page or click the "Add Role" button
-              to add a role
+              Looks like there are no employeesList created on HR mini. Click
+              the "Refresh" button to reload the page or click the "Add
+              Employee" button to add an employee
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto px-4">
@@ -303,7 +309,7 @@ const RolesManagement: React.FC = () => {
         // Table with data
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
-            <RoleTable tableDetails={roles} />
+            <EmployeesListTable tableDetails={employeesList} />
           </div>
         </div>
       )}
@@ -311,4 +317,4 @@ const RolesManagement: React.FC = () => {
   );
 };
 
-export default RolesManagement;
+export default EmployeesList;
