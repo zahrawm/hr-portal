@@ -36,7 +36,7 @@ export function AppLayout({ children }: LayoutProps) {
             }}
           />
           <main
-            className={`flex-1 p-4 transition-all duration-300 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 ${
+            className={`flex-1 p-8 transition-all duration-300 bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 ${
               isSidebarOpen ? "ml-1 md:ml-[230px]" : "ml-[50px]"
             }`}
           >

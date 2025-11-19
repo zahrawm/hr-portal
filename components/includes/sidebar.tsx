@@ -104,17 +104,17 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       <button
         className="fixed z-50 cursor-pointer transition-all duration-300 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
         style={{
-          left: isOpen ? "248px" : "8px",
-          top: "120px",
+          left: isOpen ? "234px" : "50px",
+          top: isOpen ? "60px" : "60px",
           width: "32px",
           height: "32px",
         }}
         onClick={() => setIsOpen(!isOpen)}
       >
         {isOpen ? (
-          <X size={20} className="text-gray-600 dark:text-gray-300" />
+          <X size={15} className="text-gray-600 dark:text-gray-300" />
         ) : (
-          <Menu size={20} className="text-gray-600 dark:text-gray-300" />
+          <Menu size={15} className="text-gray-600 dark:text-gray-300" />
         )}
       </button>
 
