@@ -250,7 +250,7 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
     <>
       <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
         {/* Search and Actions Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
+        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <div className="relative flex-1 w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
@@ -260,37 +260,8 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
             />
-          </div>
-
-          <div className="relative w-full sm:w-auto">
-            <button
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                />
-              </svg>
-              <span className="truncate">
-                Filter by:{" "}
-                {filterBy === "all"
-                  ? "All"
-                  : filterBy === "name"
-                  ? "Name"
-                  : "Email"}
-              </span>
-            </button>
             {showFilterDropdown && (
-              <div className="absolute right-0 top-12 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+              <div className="absolute left-0 top-12 z-10 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
                 <button
                   onClick={() => {
                     setFilterBy("all");
@@ -320,6 +291,35 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
                 </button>
               </div>
             )}
+          </div>
+
+          <div className="w-full sm:w-auto">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                />
+              </svg>
+              <span className="truncate">
+                Filter by:{" "}
+                {filterBy === "all"
+                  ? "All"
+                  : filterBy === "name"
+                  ? "Name"
+                  : "Email"}
+              </span>
+            </button>
           </div>
         </div>
 
