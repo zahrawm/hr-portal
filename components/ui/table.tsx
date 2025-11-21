@@ -19,7 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import Modal from "../layout/modal";
+
 import DepartmentModal from "../layout/create-department-modal";
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";

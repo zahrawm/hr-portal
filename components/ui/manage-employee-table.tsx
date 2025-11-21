@@ -20,29 +20,26 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import DepartmentModal from "../layout/create-department-modal";
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";
-import AddRoleModal from "../layout/add-role-modal";
-import RoleModal from "../layout/add-role-modal";
-import EditRoleModal from "../layout/edit-role-modal";
+import AddEmployeeManagement from "../layout/manage-employee-modal";
 
 type tableData = {
-  actions: string;
-  dateCreated: string;
-  roleName: string;
-  description: string;
+  name: string;
+
+  email: string;
   department: string;
   status: string;
 
   role: string;
+  actions: string;
 };
 
 interface TableProps {
   tableDetails: tableData[];
 }
 
-export default function RoleTable({ tableDetails }: TableProps) {
+export default function ManageEmployeeTable({ tableDetails }: TableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -59,11 +56,10 @@ export default function RoleTable({ tableDetails }: TableProps) {
   const [newDepartmentDescription, setNewDepartmentDescription] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-
-  const [showRowViewModal, setShowRowViewModal] = useState(false);
-  const [showEditRowViewModal, setShowEditRowViewModal] = useState(false);
+  const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
 
   const closeModal = () => {
+    setshowMangeEmployeeModal(false);
     setShowViewModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
@@ -78,29 +74,27 @@ export default function RoleTable({ tableDetails }: TableProps) {
   };
   const handleUserAddSuccess = () => {
     setShowViewModal(false);
-    setToastMessage(" Roles Successfully Created");
+    setToastMessage("Employees Successfully Created");
     setShowToast(true);
   };
 
   const handleDelete = () => {
-    console.log("Deleting role:", selectedConflict);
+    console.log("Deleting user:", selectedConflict);
     closeModal();
-    setToastMessage("Role Deleted Successfully");
+    setToastMessage(" Employees Deleted Successfully");
     setShowToast(true);
   };
 
   const handleEditSuccess = () => {
     setShowEditModal(false);
     setShowApproveModal(false);
-    setToastMessage("Role Edited Successfully");
+    setToastMessage("Employees Edited Successfully");
     setShowToast(true);
   };
 
   const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState<"all" | "name" | "description">(
-    "all"
-  );
+  const [filterBy, setFilterBy] = useState<"all" | "name" | "email">("all");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   useEffect(() => {
@@ -108,13 +102,13 @@ export default function RoleTable({ tableDetails }: TableProps) {
       const searchLower = searchTerm.toLowerCase();
 
       if (filterBy === "name") {
-        return item.roleName.toLowerCase().includes(searchLower);
-      } else if (filterBy === "description") {
-        return item.description.toLowerCase().includes(searchLower);
+        return item.department.toLowerCase().includes(searchLower);
+      } else if (filterBy === "email") {
+        return item.email.toLowerCase().includes(searchLower);
       } else {
         return (
-          item.roleName.toLowerCase().includes(searchLower) ||
-          item.description.toLowerCase().includes(searchLower)
+          item.department.toLowerCase().includes(searchLower) ||
+          item.email.toLowerCase().includes(searchLower)
         );
       }
     });
@@ -124,7 +118,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
   const columnHelper = createColumnHelper<tableData>();
 
   const columns = [
-    columnHelper.accessor("dateCreated", {
+    columnHelper.accessor("name", {
       cell: (info) => {
         const dateValue = info.getValue();
         const date = new Date(dateValue);
@@ -157,12 +151,12 @@ export default function RoleTable({ tableDetails }: TableProps) {
       },
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Date Created
+          Name
         </span>
       ),
       size: 180,
     }),
-    columnHelper.accessor("roleName", {
+    columnHelper.accessor("email", {
       cell: (info) => (
         <span className="text-sm text-gray-900 dark:text-gray-100">
           {info.getValue()}
@@ -170,12 +164,12 @@ export default function RoleTable({ tableDetails }: TableProps) {
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Role Name
+          Email
         </span>
       ),
       size: 180,
     }),
-    columnHelper.accessor("description", {
+    columnHelper.accessor("department", {
       cell: (info) => (
         <span className="text-sm text-gray-900 dark:text-gray-100">
           {info.getValue()}
@@ -183,7 +177,20 @@ export default function RoleTable({ tableDetails }: TableProps) {
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Description
+          Department
+        </span>
+      ),
+      size: 300,
+    }),
+    columnHelper.accessor("role", {
+      cell: (info) => (
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
+      ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Role
         </span>
       ),
       size: 300,
@@ -233,11 +240,11 @@ export default function RoleTable({ tableDetails }: TableProps) {
             <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               <button
                 onClick={() => {
-                  setShowEditRowViewModal(true);
+                  setShowEditModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
                 }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
+                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <img
                   src="../img/edit.svg"
@@ -327,12 +334,12 @@ export default function RoleTable({ tableDetails }: TableProps) {
                 </button>
                 <button
                   onClick={() => {
-                    setFilterBy("description");
+                    setFilterBy("email");
                     setShowFilterDropdown(false);
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
                 >
-                  Description
+                  Email
                 </button>
               </div>
             )}
@@ -362,14 +369,14 @@ export default function RoleTable({ tableDetails }: TableProps) {
                   ? "All"
                   : filterBy === "name"
                   ? "Name"
-                  : "Description"}
+                  : "Email"}
               </span>
             </button>
           </div>
 
           <button
             onClick={() => {
-              setShowRowViewModal(true);
+              setshowMangeEmployeeModal(true);
             }}
             className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
           >
@@ -383,19 +390,15 @@ export default function RoleTable({ tableDetails }: TableProps) {
               <circle cx="12" cy="12" r="7" />
               <path d="M12 9v6M9 12h6" strokeLinecap="round" />
             </svg>
-            Add Role
+            Add Employee
           </button>
           {/* AddNewUserForm Modal */}
-          {showRowViewModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div
-                className="absolute inset-0 bg-black opacity-50"
-                onClick={closeModal}
-              ></div>
-              <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-                <RoleModal
+          {showManageEmployeeModal && (
+            <div className="fixed inset-0 z-40 flex items-center justify-end bg-black bg-opacity-50">
+              <div className="relative z-50 rounded-lg bg-white dark:bg-gray-900 shadow-lg w-full max-w-8xl max-h-[90vh] overflow-y-auto mx-10">
+                <AddEmployeeManagement
                   onClose={closeModal}
-                  visible={showRowViewModal}
+                  visible={showManageEmployeeModal}
                   onSuccess={handleUserAddSuccess}
                 />
               </div>
@@ -408,25 +411,25 @@ export default function RoleTable({ tableDetails }: TableProps) {
           <div className="flex flex-col items-center justify-center py-20 px-4">
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
-                src="../img/square.svg"
+                src="../img/department.svg"
                 className="h-8 w-8 text-green-50 dark:text-green-50"
               />
             </div>
 
             <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              No Role yet
+              No Employees yet
             </h3>
 
             <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
-              Looks like there are was no roles added on HR mini. Click the
-              "Refresh" button to reload the page or click the "Add Role" button
-              to add a role
+              Looks like there are was no Employees added on HR mini. Click the
+              "Refresh" button to reload the page or click the "Create
+              Employees" button to add a department
             </p>
 
             <div className="flex items-center gap-3">
               <button
                 onClick={() => {
-                  setShowRowViewModal(true);
+                  setshowMangeEmployeeModal(true);
                 }}
                 className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
               >
@@ -440,8 +443,9 @@ export default function RoleTable({ tableDetails }: TableProps) {
                   <circle cx="12" cy="12" r="7" />
                   <path d="M12 9v6M9 12h6" strokeLinecap="round" />
                 </svg>
-                Add Role
+                Add Employee
               </button>
+
               <button
                 onClick={() => window.location.reload()}
                 className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
@@ -551,7 +555,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
               Delete this?
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to delete a role?
+              Are you sure you want to delete an employee?
             </p>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3">
@@ -574,16 +578,16 @@ export default function RoleTable({ tableDetails }: TableProps) {
       )}
 
       {/* Edit Modal */}
-      {showEditRowViewModal && (
+      {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
           <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-            <EditRoleModal
+            <EditDepartmentModal
               onClose={closeModal}
-              visible={showEditRowViewModal}
+              visible={showEditModal}
               onSuccess={handleEditSuccess}
             />
           </div>

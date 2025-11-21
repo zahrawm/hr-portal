@@ -18,18 +18,18 @@ import {
   Trash,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import Modal from "../layout/modal";
+
 import DepartmentModal from "../layout/create-department-modal";
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";
 import AddRoleModal from "../layout/add-role-modal";
 import RoleModal from "../layout/add-role-modal";
 import EditRoleModal from "../layout/edit-role-modal";
+import { useState, useEffect } from "react";
 
 type tableData = {
   name: string;
-  roleName: string;
+
   email: string;
   department: string;
   status: string;
@@ -77,21 +77,21 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
   };
   const handleUserAddSuccess = () => {
     setShowViewModal(false);
-    setToastMessage(" Roles Successfully Created");
+    setToastMessage(" Employees List  Successfully Created");
     setShowToast(true);
   };
 
   const handleDelete = () => {
     console.log("Deleting role:", selectedConflict);
     closeModal();
-    setToastMessage("Role Deleted Successfully");
+    setToastMessage("Employees List Deleted Successfully");
     setShowToast(true);
   };
 
   const handleEditSuccess = () => {
     setShowEditModal(false);
     setShowApproveModal(false);
-    setToastMessage("Role Edited Successfully");
+    setToastMessage("Employees List Edited Successfully");
     setShowToast(true);
   };
 
@@ -105,12 +105,12 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
       const searchLower = searchTerm.toLowerCase();
 
       if (filterBy === "name") {
-        return item.roleName.toLowerCase().includes(searchLower);
+        return item.department.toLowerCase().includes(searchLower);
       } else if (filterBy === "email") {
         return item.email.toLowerCase().includes(searchLower);
       } else {
         return (
-          item.roleName.toLowerCase().includes(searchLower) ||
+          item.department.toLowerCase().includes(searchLower) ||
           item.email.toLowerCase().includes(searchLower)
         );
       }
@@ -186,7 +186,7 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
       size: 300,
     }),
 
-    columnHelper.accessor("roleName", {
+    columnHelper.accessor("role", {
       cell: (info) => (
         <span className="text-sm text-gray-900 dark:text-gray-100">
           {info.getValue()}
@@ -194,11 +194,12 @@ export default function EmployeesListTable({ tableDetails }: TableProps) {
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Role Name
+          Role
         </span>
       ),
       size: 300,
     }),
+
     columnHelper.accessor("status", {
       cell: (info) => (
         <div className="flex items-center gap-2">
