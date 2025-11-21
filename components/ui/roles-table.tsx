@@ -98,7 +98,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
 
   const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState<"all" | "name" | "description">(
+  const [filterBy, setFilterBy] = useState<"all" | "roleName" | "description">(
     "all"
   );
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -107,7 +107,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
     const filtered = tableDetails.filter((item) => {
       const searchLower = searchTerm.toLowerCase();
 
-      if (filterBy === "name") {
+      if (filterBy === "roleName") {
         return item.roleName.toLowerCase().includes(searchLower);
       } else if (filterBy === "description") {
         return item.description.toLowerCase().includes(searchLower);
@@ -318,12 +318,12 @@ export default function RoleTable({ tableDetails }: TableProps) {
                 </button>
                 <button
                   onClick={() => {
-                    setFilterBy("name");
+                    setFilterBy("roleName");
                     setShowFilterDropdown(false);
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
                 >
-                  Name
+                  Role Name
                 </button>
                 <button
                   onClick={() => {
@@ -360,8 +360,8 @@ export default function RoleTable({ tableDetails }: TableProps) {
                 Filter by:{" "}
                 {filterBy === "all"
                   ? "All"
-                  : filterBy === "name"
-                  ? "Name"
+                  : filterBy === "roleName"
+                  ? "Role Name"
                   : "Description"}
               </span>
             </button>

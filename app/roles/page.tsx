@@ -111,7 +111,7 @@ const RolesManagement: React.FC = () => {
     },
     {
       actions: "",
-      roleName: "Product Designer",
+      roleName: "Security Analyst",
       description: "Marketing and Sales Growth...",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -120,7 +120,7 @@ const RolesManagement: React.FC = () => {
     },
     {
       actions: "",
-      roleName: "Product Designer",
+      roleName: "Backend Developer",
       description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -129,7 +129,7 @@ const RolesManagement: React.FC = () => {
     },
     {
       actions: "",
-      roleName: "Product Designer",
+      roleName: "Frontend Developer",
       description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -138,7 +138,7 @@ const RolesManagement: React.FC = () => {
     },
     {
       actions: "",
-      roleName: "Product Designer",
+      roleName: "UI Designer",
       description: "Hoummann.",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -156,7 +156,7 @@ const RolesManagement: React.FC = () => {
     },
     {
       actions: "",
-      roleName: "Product Designer",
+      roleName: "AI Developer",
       description: "Creative intuitive product.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -165,7 +165,7 @@ const RolesManagement: React.FC = () => {
     },
     {
       actions: "",
-      roleName: "Product Designer",
+      roleName: "ML Developer",
       description: "Branding Awareness Growth.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",

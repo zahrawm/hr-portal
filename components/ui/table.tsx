@@ -91,16 +91,16 @@ export default function UserTable({ tableDetails }: TableProps) {
 
   const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState<"all" | "name" | "description">(
-    "all"
-  );
+  const [filterBy, setFilterBy] = useState<
+    "all" | "departmentName" | "description"
+  >("all");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   useEffect(() => {
     const filtered = tableDetails.filter((item) => {
       const searchLower = searchTerm.toLowerCase();
 
-      if (filterBy === "name") {
+      if (filterBy === "departmentName") {
         return item.departmentName.toLowerCase().includes(searchLower);
       } else if (filterBy === "description") {
         return item.description.toLowerCase().includes(searchLower);
@@ -289,7 +289,10 @@ export default function UserTable({ tableDetails }: TableProps) {
       <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
         {/* Search and Actions Bar */}
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
-          <div className="relative flex-1 w-full sm:max-w-md">
+          <div
+            className="relative flex-1 w-full sm:
+          max-w-md"
+          >
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
               type="text"
@@ -311,12 +314,12 @@ export default function UserTable({ tableDetails }: TableProps) {
                 </button>
                 <button
                   onClick={() => {
-                    setFilterBy("name");
+                    setFilterBy("departmentName");
                     setShowFilterDropdown(false);
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
                 >
-                  Name
+                  Department Name
                 </button>
                 <button
                   onClick={() => {
@@ -353,8 +356,8 @@ export default function UserTable({ tableDetails }: TableProps) {
                 Filter by:{" "}
                 {filterBy === "all"
                   ? "All"
-                  : filterBy === "name"
-                  ? "Name"
+                  : filterBy === "departmentName"
+                  ? "DepartmentName"
                   : "Description"}
               </span>
             </button>

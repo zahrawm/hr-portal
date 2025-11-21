@@ -120,7 +120,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "HR Department",
       description: "Marketing and Sales Growth...",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -129,7 +129,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "IT Support",
       description: "Hosting and Events Movements",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -138,7 +138,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "FullStack",
       description: "Human Rsource Development",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -147,7 +147,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "AI",
       description: "Hoummann.",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -156,7 +156,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "UI&UX",
       description: "Branding Awareness Growth.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -165,7 +165,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "CyberSecurity",
       description: "Branding Awareness Growth.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
@@ -174,7 +174,7 @@ const DepartmentManagement: React.FC = () => {
     },
     {
       actions: "",
-      departmentName: "Operational",
+      departmentName: "Data Analysis",
       description: "Branding Awareness Growth.....",
       status: "Active",
       dateCreated: "26/10/25|12:41 AM",
