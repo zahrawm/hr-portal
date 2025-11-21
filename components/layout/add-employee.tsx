@@ -104,7 +104,7 @@ const AddEmployeeForm = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 p-8 overflow-auto">
+    <div className="h-screen bg-gray-50 p-8 ">
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-8 right-8 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in">
@@ -118,11 +118,15 @@ const AddEmployeeForm = () => {
         </div>
       )}
 
-      <div className="max-w-full mx-auto bg-white rounded-lg shadow-sm ">
+      <div className="max-w-full mx-auto bg-white rounded-lg shadow-sm  p-20">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div className="bg-gray-100 p-3 rounded-lg">
-            <UserPlus className="w-6 h-6 text-gray-700" />
+            <img
+              src="../img/group.svg"
+              alt="Loading"
+              className="h-5 w-5 sm:h-6 sm:w-6"
+            />
           </div>
           <div>
             <h1 className="text-xl font-semibold text-gray-900">
@@ -328,7 +332,11 @@ const AddEmployeeForm = () => {
           <div className="flex items-center justify-between py-4 border-t border-gray-200">
             <div className="flex items-center gap-3">
               <div className="bg-gray-100 p-2 rounded-lg">
-                <UserPlus className="w-5 h-5 text-gray-700" />
+                <img
+                  src="../img/group.svg"
+                  alt="Loading"
+                  className="h-5 w-5 sm:h-6 sm:w-6"
+                />
               </div>
               <div>
                 <div className="font-medium text-gray-900">Employee Status</div>

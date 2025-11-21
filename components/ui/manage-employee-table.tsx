@@ -394,8 +394,8 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
           </button>
           {/* AddNewUserForm Modal */}
           {showManageEmployeeModal && (
-            <div className="fixed inset-0 z-40 flex items-center justify-end bg-black bg-opacity-50">
-              <div className="relative z-50 rounded-lg bg-white dark:bg-gray-900 shadow-lg w-full max-w-8xl max-h-[90vh] overflow-y-auto mx-10">
+            <div className="fixed inset-0 z-40 flex items-center justify-end bg-white bg-opacity-50 max-h-[90vh]  max-w-10xl ">
+              <div className="relative z-50 rounded-lg bg-white dark:bg-gray-900 shadow-lg w-full  overflow-y-auto mx-10 p-8">
                 <AddEmployeeManagement
                   onClose={closeModal}
                   visible={showManageEmployeeModal}
