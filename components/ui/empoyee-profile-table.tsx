@@ -35,14 +35,14 @@ type tableData = {
   status: string;
 
   role: string;
-  actions: string;
+  view: string;
 };
 
 interface TableProps {
   tableDetails: tableData[];
 }
 
-export default function ManageEmployeeTable({ tableDetails }: TableProps) {
+export default function EmployeeProfileTable({ tableDetails }: TableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -50,11 +50,8 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
 
   const router = useRouter();
 
-  const handleNavigate = () => {
-    router.push("/addEmployee"); // Navigate to /dashboard
-  };
-  const handleEdit = () => {
-    router.push("/editEmployee"); // Navigate to /dashboard
+  const handleProfile = () => {
+    router.push("/profileContent"); // Navigate to /dashboard
   };
 
   const [showViewModal, setShowViewModal] = useState(false);
@@ -240,61 +237,40 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
       ),
       size: 120,
     }),
-    columnHelper.accessor("actions", {
-      cell: (info) => (
-        <div className="relative flex items-center justify-start">
-          <button
-            onClick={() =>
-              setOpenDropdownIndex(
-                openDropdownIndex === info.row.index ? null : info.row.index
-              )
-            }
-            className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <Ellipsis className="h-5 w-5" />
-          </button>
-          {openDropdownIndex === info.row.index && (
-            <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-              <button
-                onClick={() => {
-                  handleEdit();
-                  setSelectedConflict(info.row.original);
-                  setOpenDropdownIndex(null);
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <img
-                  src="../img/edit.svg"
-                  className="h-4 w-4 text-green-50 dark:text-green-50"
-                />
-                Edit
-              </button>
 
-              <button
-                onClick={() => {
-                  setShowDeleteModal(true);
-                  setSelectedConflict(info.row.original);
-                  setOpenDropdownIndex(null);
-                  const onSuccess = { handleDelete };
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <img
-                  src="../img/bin.svg"
-                  className="h-4 w-4 text-red-500 dark:text-red-500"
-                />
-                Delete
-              </button>
-            </div>
-          )}
+    columnHelper.accessor("view", {
+      cell: (info) => (
+        <div className="flex items-center justify-start">
+          <button
+            onClick={() => {
+              handleProfile();
+              setSelectedConflict(info.row.original);
+            }}
+            className="flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            View
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13 7l5 5m0 0l-5 5m5-5H6"
+              />
+            </svg>
+          </button>
         </div>
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Actions
+          View
         </span>
       ),
-      size: 80,
+      size: 120,
     }),
   ];
 
@@ -390,25 +366,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
               </span>
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              handleNavigate();
-            }}
-            className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2"
-            >
-              <circle cx="12" cy="12" r="7" />
-              <path d="M12 9v6M9 12h6" strokeLinecap="round" />
-            </svg>
-            Add Employee
-          </button>
         </div>
 
         {/* Empty State - when no results found */}
@@ -432,25 +389,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
             </p>
 
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => {
-                  handleNavigate();
-                }}
-                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="7" />
-                  <path d="M12 9v6M9 12h6" strokeLinecap="round" />
-                </svg>
-                Add Employee
-              </button>
-
               <button
                 onClick={() => window.location.reload()}
                 className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"

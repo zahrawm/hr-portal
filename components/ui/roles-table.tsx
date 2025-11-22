@@ -190,7 +190,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
     }),
     columnHelper.accessor("status", {
       cell: (info) => (
-        <div className="flex items-center gap-2">
+        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md">
           <span
             className={`h-2 w-2 rounded-full ${
               info.getValue() === "Active"
@@ -207,7 +207,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
           >
             {info.getValue()}
           </span>
-        </div>
+        </button>
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">

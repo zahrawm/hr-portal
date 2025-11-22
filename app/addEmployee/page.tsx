@@ -2,7 +2,9 @@
 import { CheckCircle, X } from "lucide-react";
 import React, { useState } from "react";
 import { AppLayout } from "@/components/layout/app";
-import AddEmployeeForm from "./add-employee";
+
+import { useTheme } from "next-themes";
+import AddEmployeeForm from "@/components/layout/add-employee";
 
 interface AddEmployeeManagementProps {
   onClose?: () => void;
@@ -27,7 +29,7 @@ const AddEmployeeManagement: React.FC<AddEmployeeManagementProps> = ({
   // return
   return (
     <AppLayout>
-      <AddEmployeeForm />;
+      <AddEmployeeForm />
     </AppLayout>
   );
 };

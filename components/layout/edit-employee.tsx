@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
-const AddEmployeeForm = () => {
+const EditEmployeeForm = () => {
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
 
@@ -96,7 +96,7 @@ const AddEmployeeForm = () => {
     "December",
   ];
 
-  const handleAddEmployee = () => {
+  const handleEditEmployee = () => {
     setIsLoading(true);
     setTimeout(() => {
       setIsLoading(false);
@@ -108,7 +108,7 @@ const AddEmployeeForm = () => {
   };
 
   return (
-    <div className="h-screen p-8">
+    <div className={` p-8 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-8 right-8 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in">
@@ -122,16 +122,12 @@ const AddEmployeeForm = () => {
         </div>
       )}
 
-      <div
-        className={`max-w-full mx-auto rounded-lg shadow-sm p-20 ${
-          isDarkMode ? "bg-gray-800" : "bg-white"
-        }`}
-      >
+      <div className={`max-w-full  rounded-lg shadow-sm p-20 `}>
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div
             className={`p-3 rounded-lg ${
-              isDarkMode ? "bg-gray-700" : "bg-gray-100"
+              isDarkMode ? "bg-gray-00" : "bg-gray-100"
             }`}
           >
             <img
@@ -146,14 +142,14 @@ const AddEmployeeForm = () => {
                 isDarkMode ? "text-gray-100" : "text-gray-900"
               }`}
             >
-              Add Employee
+              Edit Employee
             </h1>
             <p
               className={`text-sm mt-1 ${
                 isDarkMode ? "text-gray-400" : "text-gray-500"
               }`}
             >
-              Add your employees on the HR Mini
+              Edit your employees on the HR Mini
             </p>
           </div>
         </div>
@@ -422,7 +418,7 @@ const AddEmployeeForm = () => {
                         }
                       }}
                       className={`py-2 rounded ${
-                        isDarkMode ? "hover:bg-gray-600" : "hover:bg-green-50"
+                        isDarkMode ? "hover:bg-gray-900" : "hover:bg-green-50"
                       } ${
                         !dateObj.isCurrentMonth
                           ? "text-gray-300"
@@ -442,12 +438,14 @@ const AddEmployeeForm = () => {
           {/* Employee Status */}
           <div
             className={`flex items-center justify-between py-4 border-t ${
-              isDarkMode ? "border-gray-700" : "border-gray-200"
+              isDarkMode ? "border-gray-900" : "border-gray-200"
             }`}
           >
             <div className="flex items-center gap-3">
               <div
-                className={`p-2 rounded-lg ${isDarkMode ? "" : "bg-gray-100"}`}
+                className={`p-2 rounded-lg ${
+                  isDarkMode ? "bg-gray-900" : "bg-gray-100"
+                }`}
               >
                 <img
                   src="../img/group.svg"
@@ -465,7 +463,7 @@ const AddEmployeeForm = () => {
                 </div>
                 <div
                   className={`text-sm ${
-                    isDarkMode ? "text-gray-400" : "text-gray-500"
+                    isDarkMode ? "text-gray-400" : "text-gray-900"
                   }`}
                 >
                   Decide whether this employee is active on the HR Mini
@@ -475,7 +473,7 @@ const AddEmployeeForm = () => {
             <div className="flex items-center gap-3">
               <span
                 className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-600"
+                  isDarkMode ? "text-gray-400" : "text-gray-900"
                 }`}
               >
                 {isActive ? "Active" : "Inactive"}
@@ -486,7 +484,7 @@ const AddEmployeeForm = () => {
                   isActive
                     ? "bg-emerald-500"
                     : isDarkMode
-                    ? "bg-gray-600"
+                    ? "bg-gray-900"
                     : "bg-gray-300"
                 }`}
               >
@@ -500,7 +498,7 @@ const AddEmployeeForm = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="pt-4">
+          <div className="pt-4 space-y-3">
             {isLoading ? (
               <div
                 className={`w-full flex items-center justify-center gap-2 py-3 rounded-lg ${
@@ -519,13 +517,23 @@ const AddEmployeeForm = () => {
                 </span>
               </div>
             ) : (
-              <button
-                onClick={handleAddEmployee}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
-              >
-                <CirclePlus className="w-5 h-5" />
-                Add Employee
-              </button>
+              <>
+                <button
+                  onClick={handleEditEmployee}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                >
+                  Save Changes
+                </button>
+                <button
+                  className={`w-full border font-medium py-3 rounded-lg transition-colors ${
+                    isDarkMode
+                      ? "border-gray-600 text-gray-300 hover:bg-gray-700"
+                      : "border-gray-300 text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  Cancel
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -534,4 +542,4 @@ const AddEmployeeForm = () => {
   );
 };
 
-export default AddEmployeeForm;
+export default EditEmployeeForm;

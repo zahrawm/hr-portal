@@ -12,7 +12,6 @@ import UserTable from "@/components/ui/table";
 
 import ManageEmployeeTable from "@/components/ui/manage-employee-table";
 import AddEmployeeForm from "@/components/layout/add-employee";
-import AddEmployeeManagement from "@/components/layout/manage-employee-modal";
 
 type ConflictType = ManageEmployee | null;
 
@@ -295,21 +294,6 @@ const ManageEmployee: React.FC = () => {
                 </svg>
                 Add Employee
               </button>
-              {showManageEmployeeModal && (
-                <div className="fixed inset-0 p-4">
-                  <div
-                    className="absolute inset-0 bg-black opacity-50"
-                    onClick={closeModal}
-                  ></div>
-                  <div className="relative rounded-lg bg-white shadow-lg w-full max-w-2xl">
-                    <AddEmployeeManagement
-                      onClose={closeModal}
-                      visible={showManageEmployeeModal}
-                      onSuccess={handleUserAddSuccess}
-                    />
-                  </div>
-                </div>
-              )}
 
               <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <svg

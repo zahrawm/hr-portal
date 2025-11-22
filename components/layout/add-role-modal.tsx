@@ -66,14 +66,14 @@ export default function RoleModal({ onClose, onSuccess }: RoleModalProps) {
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">
             Add a Role
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-900 mt-1">
             Choose a role name and enter description to add a role
           </p>
         </div>
         <button
           onClick={handleCancel}
           disabled={isLoading}
-          className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+          className="text-gray-900 hover:text-gray-900 dark:text-gray-900 dark:hover:text-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
           aria-label="Close modal"
         >
           <svg
@@ -151,7 +151,7 @@ export default function RoleModal({ onClose, onSuccess }: RoleModalProps) {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             disabled={isLoading}
-            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 dark:focus:border-green-400 outline-none transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
+            className="w-full px-3 sm:px-4 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-900 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 dark:focus:border-green-400 outline-none transition-colors text-gray-900 dark:text-white bg-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
             placeholder="Enter a description"
           />
         </div>
@@ -174,7 +174,7 @@ export default function RoleModal({ onClose, onSuccess }: RoleModalProps) {
             type="button"
             onClick={handleCancel}
             disabled={isLoading}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base order-2 sm:order-1"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-900 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base order-2 sm:order-1"
           >
             Cancel
           </button>
