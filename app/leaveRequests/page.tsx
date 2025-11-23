@@ -11,6 +11,18 @@ const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
   const [showToast, setShowToast] = useState(false);
 
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("success") === "true") {
+        setShowToast(true);
+        // Clear the URL parameter
+        window.history.replaceState({}, "", "/leaveRequests");
+        setTimeout(() => setShowToast(false), 5000);
+      }
+    }
+  }, []);
+
   const handleSubmit = () => {
     router.push("/leaveSubmit");
   };
@@ -146,7 +158,7 @@ const LeaveRequestContent: React.FC = () => {
                       <div className="max-w-xl">{request.message}</div>
                     </td>
                     <td className="px-4 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                      <button className="flex items-center gap-2 px-3 py-1.5 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                      <button className="flex items-center gap-2 px-3 py-1.5 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-40">
                         <span
                           className={`w-2 h-2 rounded-full ${request.statusDot}`}
                         ></span>

@@ -162,7 +162,7 @@ const SubmitLeaveForm: React.FC = () => {
         </div>
 
         {/* Form */}
-        <div className="max-w-4xl">
+        <div className="max-w-6xl">
           {/* Date Range Field */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
@@ -175,9 +175,9 @@ const SubmitLeaveForm: React.FC = () => {
                 onClick={() => setShowCalendar(!showCalendar)}
                 placeholder="Select a date range"
                 readOnly
-                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm cursor-pointer"
+                className="w-full px-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm cursor-pointer"
               />
-              <Calendar className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+              <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
 
               {/* Calendar Popup */}
               {showCalendar && (
@@ -270,7 +270,7 @@ const SubmitLeaveForm: React.FC = () => {
               onChange={(e) => setReason(e.target.value)}
               placeholder="Type your reason here."
               rows={2}
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm resize-none"
+              className="w-full px-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm resize-none"
             />
           </div>
 
