@@ -2,8 +2,10 @@
 
 import { AppLayout } from "@/components/layout/app";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function EmployeeProfileContent() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("info");
 
   const tabs = [
@@ -19,7 +21,12 @@ export default function EmployeeProfileContent() {
         {/* Breadcrumb */}
         <div className="px-8 py-4">
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <span>Employees Profile</span>
+            <span
+              onClick={() => router.push("/employeesProfile")}
+              className="hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+            >
+              Employees Profile
+            </span>
             <span>›</span>
             <span>Profile page</span>
           </div>
