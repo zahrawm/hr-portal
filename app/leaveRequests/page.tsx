@@ -5,6 +5,8 @@ import { useTheme } from "next-themes";
 import { AppLayout } from "@/components/layout/app";
 import { useRouter, useSearchParams } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
