@@ -3,29 +3,13 @@ import React, { useEffect, useState } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { AppLayout } from "@/components/layout/app";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [showToast, setShowToast] = useState(false);
-
-  useEffect(() => {
-    // Check if redirected with success flag
-    if (searchParams.get("success") === "true") {
-      setShowToast(true);
-
-      // Auto-hide toast after 5 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 5000);
-
-      // Clean up URL
-      router.replace("/leaveRequests");
-    }
-  }, [searchParams, router]);
 
   const handleSubmit = () => {
     router.push("/leaveSubmit");
