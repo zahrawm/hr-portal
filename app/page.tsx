@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ModeToggle } from "@/components/theme/ThemeSwitcher";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -68,22 +69,27 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4 relative">
+      {/* Fixed ModeToggle at top right corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <ModeToggle />
+      </div>
+
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Log in to your account
           </h1>
-          <p className="text-gray-600">
+          <p className="text-gray-600 dark:text-gray-400">
             Welcome back! Please enter your details.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-5">
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 mb-1.5"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
             >
               Email
             </label>
@@ -94,18 +100,22 @@ export default function LoginForm() {
               onChange={handleEmailChange}
               placeholder="abena@gmail.com"
               className={`w-full px-3.5 py-2.5 border ${
-                emailError ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 placeholder:text-gray-400`}
+                emailError
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500`}
             />
             {emailError && (
-              <p className="mt-1.5 text-sm text-red-600">{emailError}</p>
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                {emailError}
+              </p>
             )}
           </div>
 
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 mb-1.5"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
             >
               Password
             </label>
@@ -117,16 +127,20 @@ export default function LoginForm() {
               onBlur={() => validatePassword(password)}
               placeholder="••••••••"
               className={`w-full px-3.5 py-2.5 border ${
-                passwordError ? "border-red-500" : "border-gray-300"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900`}
+                passwordError
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800`}
             />
             {passwordError && (
-              <p className="mt-1.5 text-sm text-red-600">{passwordError}</p>
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                {passwordError}
+              </p>
             )}
           </div>
 
           <button
-            type="submit"
+            onClick={handleSubmit}
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors duration-200"
           >
             Sign in
@@ -135,7 +149,7 @@ export default function LoginForm() {
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"
+            className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path
@@ -157,7 +171,7 @@ export default function LoginForm() {
             </svg>
             Sign in with Google
           </button>
-        </form>
+        </div>
       </div>
     </div>
   );
