@@ -1,327 +1,164 @@
 "use client";
-import {
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  X,
-} from "lucide-react";
-import React, { useState } from "react";
-import { AppLayout } from "@/components/layout/app";
-import UserTable from "@/components/ui/table";
-import DepartmentModal from "@/components/layout/create-department-modal";
 
-type ConflictType = User | null;
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
-interface User {
-  actions: string;
-  departmentName: string;
-  description: string;
-  department: string;
-  status: string;
-  dateCreated: string;
-  role: string;
-}
+export default function LoginForm() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
 
-const DepartmentManagement: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("Ghana");
-  const [selectedRole, setSelectedRole] = useState("Role");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showEditApprovalModal, setShowEditApprovalModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showResetPinModal, setShowResetPinModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedConflict, setSelectedConflict] = useState<ConflictType>(null);
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
-  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null
-  );
-
-  const closeModal = () => {
-    setShowViewModal(false);
-    setShowEditModal(false);
-    setShowDeleteModal(false);
-    setShowApproveModal(false);
-    setSelectedConflict(null);
-    setShowResetPinModal(false);
-    setShowAddUserModal(false);
+  const validateEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!value) {
+      setEmailError("");
+      return false;
+    } else if (!emailRegex.test(value)) {
+      setEmailError('Kindly provide a valid email "you@gmail.com"');
+      return false;
+    } else {
+      setEmailError("");
+      return true;
+    }
   };
 
-  const handleUserAddSuccess = () => {
-    setShowSuccessNotification(true);
-    setTimeout(() => {
-      setShowSuccessNotification(false);
-    }, 5000);
+  const validatePassword = (value: string) => {
+    if (!value) {
+      setPasswordError("");
+      return false;
+    } else if (value.length < 6) {
+      setPasswordError("");
+      return false;
+    } else {
+      setPasswordError("");
+      return true;
+    }
   };
 
-  const handleDelete = () => {
-    console.log("Deleting user:", selectedConflict);
-    closeModal();
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    validateEmail(value);
   };
 
-  const handleResetPin = () => {
-    console.log("Resetting PIN for user:", selectedConflict);
-    closeModal();
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    if (passwordError) {
+      validatePassword(value);
+    }
   };
 
-  const handleExportCSV = () => {
-    // Define CSV headers
-    const headers = [
-      "Department Name",
-      "Description",
-      "Status",
-      "Date Created",
-    ];
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
 
-    // Map user data to CSV rows
-    const rows = users.map((user) => [
-      user.departmentName,
-      user.description,
-      user.status,
-      user.dateCreated,
-    ]);
-
-    // Combine headers and rows
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `departments_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    if (isEmailValid && isPasswordValid) {
+      console.log("Form is valid", { email, password });
+      router.push("/department");
+    }
   };
 
-  const users: User[] = [
-    {
-      actions: "",
-      departmentName: "Operational",
-      description: "Branding Awareness Growth.....",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "HR Department",
-      description: "Marketing and Sales Growth...",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "IT Support",
-      description: "Hosting and Events Movements",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "FullStack",
-      description: "Human Rsource Development",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "AI",
-      description: "Hoummann.",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "UI&UX",
-      description: "Branding Awareness Growth.....",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "CyberSecurity",
-      description: "Branding Awareness Growth.....",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-    {
-      actions: "",
-      departmentName: "Data Analysis",
-      description: "Branding Awareness Growth.....",
-      status: "Active",
-      dateCreated: "26/10/25|12:41 AM",
-      department: "",
-      role: "",
-    },
-  ];
-
-  const totalPages = 10;
+  const handleGoogleSignIn = () => {
+    console.log("Google sign in clicked");
+    // Handle Google sign in logic here
+  };
 
   return (
-    <AppLayout>
-      {/* Success Notification */}
-      {showSuccessNotification && (
-        <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
-          <CheckCircle className="h-5 w-5 flex-shrink-0" />
-          <span className="font-medium text-sm sm:text-base">
-            New user added successfully
-          </span>
-          <button
-            onClick={() => setShowSuccessNotification(false)}
-            className="ml-2 rounded-full p-1 hover:bg-green-600 flex-shrink-0"
-          >
-            <X className="h-4 w-4" />
-          </button>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Log in to your account
+          </h1>
+          <p className="text-gray-600">
+            Welcome back! Please enter your details.
+          </p>
         </div>
-      )}
 
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-            <img
-              src="../img/department.svg"
-              alt="Department Icon"
-              className="h-6 w-6"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Department
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              View the list of departments for the HR Mini
-            </p>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 mb-1.5"
+            >
+              Email
+            </label>
+            <input
+              type="text"
+              id="email"
+              value={email}
+              onChange={handleEmailChange}
+              placeholder="abena@gmail.com"
+              className={`w-full px-3.5 py-2.5 border ${
+                emailError ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 placeholder:text-gray-400`}
+            />
+            {emailError && (
+              <p className="mt-1.5 text-sm text-red-600">{emailError}</p>
+            )}
           </div>
-        </div>
-        <button
-          onClick={handleExportCSV}
-          className="mr-10 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-600 dark:border-gray-500 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-        >
-          <img
-            src="../img/leftf.svg"
-            alt="Department Icon"
-            className="h-4 w-4"
-          />
-          Export CSV
-        </button>
-      </div>
 
-      {/* User Table or Empty State */}
-      {users.length === 0 ? (
-        // Empty State
-        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
-          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <img
-                src="../img/department.svg"
-                alt="Department Icon"
-                className="h-8 w-8"
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 mb-1.5"
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={handlePasswordChange}
+              onBlur={() => validatePassword(password)}
+              placeholder="••••••••"
+              className={`w-full px-3.5 py-2.5 border ${
+                passwordError ? "border-red-500" : "border-gray-300"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900`}
+            />
+            {passwordError && (
+              <p className="mt-1.5 text-sm text-red-600">{passwordError}</p>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors duration-200"
+          >
+            Sign in
+          </button>
+
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
               />
-            </div>
-
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
-              No Departments yet
-            </h3>
-
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6 px-4">
-              Looks like there are no departments created on HR mini. Click the
-              "Refresh" button to reload the page or click the "Create
-              Department" button to create a department
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto px-4">
-              <button
-                onClick={() => {
-                  setShowViewModal(true);
-                }}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <circle cx="12" cy="12" r="7" />
-                  <path d="M12 9v6M9 12h6" strokeLinecap="round" />
-                </svg>
-                Create Department
-              </button>
-              {showViewModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                  <div
-                    className="absolute inset-0 bg-black opacity-50"
-                    onClick={closeModal}
-                  ></div>
-                  <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-                    <DepartmentModal
-                      onClose={closeModal}
-                      visible={showViewModal}
-                      onSuccess={handleUserAddSuccess}
-                    />
-                  </div>
-                </div>
-              )}
-
-              <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Refresh
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        // Table with data
-        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
-          <div className="overflow-x-auto">
-            <UserTable tableDetails={users} />
-          </div>
-        </div>
-      )}
-    </AppLayout>
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              />
+            </svg>
+            Sign in with Google
+          </button>
+        </form>
+      </div>
+    </div>
   );
-};
-
-export default DepartmentManagement;
+}

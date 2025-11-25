@@ -10,6 +10,11 @@ export const dynamic = "force-dynamic";
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
   const [showToast, setShowToast] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -51,6 +56,51 @@ const LeaveRequestContent: React.FC = () => {
         "Your manager needs clarification or an updated document (e.g., a doctor's note) before they can approve the request.",
     },
   ];
+
+  // Filter requests based on search and filter
+  const filteredRequests = leaveRequests.filter((request) => {
+    const matchesSearch =
+      request.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.message.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Parse date from "26/10/25 | 12:41 AM" format
+    const requestDateStr = request.date.split(" | ")[0]; // Get "26/10/25"
+    const [day, month, year] = requestDateStr.split("/");
+    const requestDate = new Date(`20${year}-${month}-${day}`);
+
+    // Check date range filter
+    let matchesDateRange = true;
+    if (startDate) {
+      const start = new Date(startDate);
+      matchesDateRange = matchesDateRange && requestDate >= start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      matchesDateRange = matchesDateRange && requestDate <= end;
+    }
+
+    const matchesFilter =
+      selectedFilter === "all" ||
+      (selectedFilter === "newest" && true) ||
+      (selectedFilter === "oldest" && true) ||
+      (selectedFilter === "custom" && matchesDateRange);
+
+    return (
+      matchesSearch &&
+      (selectedFilter === "custom" ? matchesDateRange : matchesFilter)
+    );
+  });
+
+  // Sort by date
+  const sortedRequests = [...filteredRequests].sort((a, b) => {
+    if (selectedFilter === "newest") {
+      return b.id - a.id;
+    } else if (selectedFilter === "oldest") {
+      return a.id - b.id;
+    }
+    return 0;
+  });
 
   return (
     <AppLayout>
@@ -102,11 +152,119 @@ const LeaveRequestContent: React.FC = () => {
             <input
               type="text"
               placeholder="Type or search..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm"
             />
+
+            {/* Filter Dropdown - Directly under search bar */}
+            {showFilterDropdown && (
+              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
+                <div className="p-2">
+                  <button
+                    onClick={() => {
+                      setSelectedFilter("all");
+                      setStartDate("");
+                      setEndDate("");
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
+                      selectedFilter === "all"
+                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    All Dates
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedFilter("newest");
+                      setStartDate("");
+                      setEndDate("");
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
+                      selectedFilter === "newest"
+                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    Newest First
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedFilter("oldest");
+                      setStartDate("");
+                      setEndDate("");
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
+                      selectedFilter === "oldest"
+                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    }`}
+                  >
+                    Oldest First
+                  </button>
+
+                  <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+
+                  <div className="px-3 py-2">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                      Custom Date Range
+                    </p>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-600 dark:text-gray-400">
+                          From
+                        </label>
+                        <input
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => {
+                            setStartDate(e.target.value);
+                            setSelectedFilter("custom");
+                          }}
+                          className="w-full mt-1 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-600 dark:text-gray-400">
+                          To
+                        </label>
+                        <input
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => {
+                            setEndDate(e.target.value);
+                            setSelectedFilter("custom");
+                          }}
+                          className="w-full mt-1 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        />
+                      </div>
+                      {(startDate || endDate) && (
+                        <button
+                          onClick={() => {
+                            setStartDate("");
+                            setEndDate("");
+                            setSelectedFilter("all");
+                          }}
+                          className="w-full px-2 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                        >
+                          Clear dates
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-8">
-            <button className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap"
+            >
               <Filter className="w-4 h-4 text-gray-700 dark:text-gray-300" />
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Filter by
@@ -131,48 +289,74 @@ const LeaveRequestContent: React.FC = () => {
 
           {/* Table */}
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-t border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                    Date Summited
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                    What it Means
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                {leaveRequests.map((request) => (
-                  <tr
-                    key={request.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                      {request.date}
-                    </td>
-                    <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                      <div className="max-w-xl">{request.message}</div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                      <button className="flex items-center gap-2 px-3 py-1.5 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-40">
-                        <span
-                          className={`w-2 h-2 rounded-full ${request.statusDot}`}
-                        ></span>
-                        <span
-                          className={`text-xs sm:text-sm font-medium ${request.statusColor}`}
-                        >
-                          {request.status}
-                        </span>
-                      </button>
-                    </td>
+            {sortedRequests.length > 0 ? (
+              <table className="w-full">
+                <thead>
+                  <tr className="border-t border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      Date Summited
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      What it Means
+                    </th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      Status
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {sortedRequests.map((request) => (
+                    <tr
+                      key={request.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
+                        {request.date}
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
+                        <div className="max-w-xl">{request.message}</div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
+                        <button className="flex items-center gap-2 px-3 py-1.5 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-40">
+                          <span
+                            className={`w-2 h-2 rounded-full ${request.statusDot}`}
+                          ></span>
+                          <span
+                            className={`text-xs sm:text-sm font-medium ${request.statusColor}`}
+                          >
+                            {request.status}
+                          </span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <div className="text-gray-400 dark:text-gray-500 mb-3">
+                  <svg
+                    className="w-16 h-16 mx-auto"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1.5"
+                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">
+                  No dates found
+                </p>
+                <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">
+                  Try adjusting your search or filter
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
