@@ -136,7 +136,7 @@ const SubmitLeaveForm: React.FC = () => {
             </span>
             <span>&gt;</span>
             <span className="text-gray-900 dark:text-white font-medium">
-              Summit Leave
+              Submit Leave
             </span>
           </div>
         </div>

@@ -222,6 +222,43 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                 />
               )}
             </button>
+
+            {/* Dropdown Menu */}
+            {isUserMenuOpen && isOpen && (
+              <div className="mt-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                    My account
+                  </p>
+                </div>
+                <div className="py-1">
+                  <button className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Profile
+                  </button>
+                  <button className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Settings
+                  </button>
+                </div>
+                <div className="py-1 border-t border-gray-200 dark:border-gray-700">
+                  <button className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Github
+                  </button>
+                  <button className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Support
+                  </button>
+                </div>
+                <div className="py-1 border-t border-gray-200 dark:border-gray-700">
+                  <button className="w-full px-3 py-2 text-left text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    API
+                  </button>
+                </div>
+                <div className="py-1 border-t border-gray-200 dark:border-gray-700">
+                  <button className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    Log out
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </nav>
