@@ -175,23 +175,15 @@ const AdminAttendace: React.FC = () => {
     <AppLayout>
       {/* Clock-In Success Notification */}
       {showClockInNotification && (
-        <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-white dark:bg-gray-800 border-2 border-green-500 px-4 py-3 shadow-lg max-w-md">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-500 flex-shrink-0">
-            <CheckCircle className="h-5 w-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
-              Clock-In Successful
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400">
-              Luke Smart clocked in at 9:00 AM Successfully.
-            </p>
-          </div>
+        <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-6 py-3 shadow-lg max-w-md">
+          <span className="font-medium text-white text-sm">
+            Clock-In Successful
+          </span>
           <button
             onClick={() => setShowClockInNotification(false)}
-            className="ml-2 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-700 flex-shrink-0"
+            className="ml-auto rounded-full p-1 hover:bg-green-600 flex-shrink-0"
           >
-            <X className="h-4 w-4 text-gray-500" />
+            <X className="h-4 w-4 text-white" />
           </button>
         </div>
       )}
