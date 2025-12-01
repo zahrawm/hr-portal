@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ModeToggle } from "@/components/theme/ThemeSwitcher";
+import axios from "axios";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function LoginForm() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,7 +32,7 @@ export default function LoginForm() {
     if (!value) {
       setPasswordError("");
       return false;
-    } else if (value.length < 6) {
+    } else if (value.length < 3) {
       setPasswordError("This is an invalid password.");
       return false;
     } else {
@@ -53,14 +55,50 @@ export default function LoginForm() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const isEmailValid = validateEmail(email);
     const isPasswordValid = validatePassword(password);
 
-    if (isEmailValid && isPasswordValid) {
-      console.log("Form is valid", { email, password });
-      router.push("/department");
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const payload = {
+        email,
+        password,
+      };
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}auth/login`,
+        payload
+      );
+
+      console.log(response.data);
+
+      if (response.data.success) {
+        // Store token in localStorage
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+
+        // Navigate to department page
+        router.push("/department");
+      }
+    } catch (error: any) {
+      console.log(error);
+
+      // Display error message
+      if (error.response?.data?.message) {
+        setPasswordError(error.response.data.message);
+      } else {
+        setPasswordError("Login failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -100,11 +138,12 @@ export default function LoginForm() {
               value={email}
               onChange={handleEmailChange}
               placeholder="abena@gmail.com"
+              disabled={isLoading}
               className={`w-full px-3.5 py-2.5 border ${
                 emailError
                   ? "border-red-500"
                   : "border-gray-300 dark:border-gray-600"
-              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500`}
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed`}
             />
             {emailError && (
               <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
@@ -128,16 +167,18 @@ export default function LoginForm() {
                 onChange={handlePasswordChange}
                 onBlur={() => validatePassword(password)}
                 placeholder="••••••••"
+                disabled={isLoading}
                 className={`w-full px-3.5 py-2.5 pr-10 border ${
                   passwordError
                     ? "border-red-500"
                     : "border-gray-300 dark:border-gray-600"
-                } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800`}
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                disabled={isLoading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
               >
                 {showPassword ? (
                   <svg
@@ -184,16 +225,45 @@ export default function LoginForm() {
           </div>
 
           <button
+            type="submit"
             onClick={handleSubmit}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors duration-200"
+            disabled={isLoading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Sign in
+            {isLoading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Signing in...
+              </>
+            ) : (
+              "Sign in"
+            )}
           </button>
 
           <button
             type="button"
             onClick={handleGoogleSignIn}
-            className="w-full bg-white dark:bg-gray-800 border border-black dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3"
+            disabled={isLoading}
+            className="w-full bg-white dark:bg-gray-800 border border-black dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg transition-colors duration-200 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path

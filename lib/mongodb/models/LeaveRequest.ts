@@ -35,8 +35,8 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
   {
     employeeId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
-      required: [true, "Employee ID is required"],
+      ref: "Users",
+      required: [true, "Users ID is required"],
     },
     type: {
       type: String,
@@ -68,7 +68,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
     },
     approverId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
+      ref: "Users",
     },
     approvedAt: {
       type: Date,
@@ -89,7 +89,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
 );
 
 // Indexes
-leaveRequestSchema.index({ employeeId: 1 });
+leaveRequestSchema.index({ userId: 1 });
 leaveRequestSchema.index({ status: 1 });
 leaveRequestSchema.index({ startDate: 1, endDate: 1 });
 leaveRequestSchema.index({ approverId: 1 });

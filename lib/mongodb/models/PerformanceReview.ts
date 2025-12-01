@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IPerformanceReview extends Document {
   _id: string;
-  employeeId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   reviewerId: mongoose.Types.ObjectId;
   periodStart: Date;
   periodEnd: Date;
@@ -20,14 +20,14 @@ export interface IPerformanceReview extends Document {
 
 const performanceReviewSchema = new Schema<IPerformanceReview>(
   {
-    employeeId: {
+    userId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
-      required: [true, "Employee ID is required"],
+      ref: "User",
+      required: [true, "User ID is required"],
     },
     reviewerId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
+      ref: "User",
       required: [true, "Reviewer ID is required"],
     },
     periodStart: {
@@ -81,14 +81,14 @@ const performanceReviewSchema = new Schema<IPerformanceReview>(
 );
 
 // Indexes
-performanceReviewSchema.index({ employeeId: 1 });
+performanceReviewSchema.index({ userId: 1 });
 performanceReviewSchema.index({ reviewerId: 1 });
 performanceReviewSchema.index({ periodStart: 1, periodEnd: 1 });
 performanceReviewSchema.index({ status: 1 });
 
 performanceReviewSchema.pre("save", function (next) {
-  if (this.employeeId.equals(this.reviewerId)) {
-    next(new Error("An employee cannot review themselves"));
+  if (this.userId.equals(this.reviewerId)) {
+    next(new Error("An user cannot review themselves"));
   }
   next();
 });

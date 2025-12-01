@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IAttendance extends Document {
   _id: string;
-  employeeId: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
   date: Date;
   clockIn: Date;
   clockOut?: Date;
@@ -16,10 +16,10 @@ export interface IAttendance extends Document {
 
 const attendanceSchema = new Schema<IAttendance>(
   {
-    employeeId: {
+    userId: {
       type: Schema.Types.ObjectId,
-      ref: "Employee",
-      required: [true, "Employee ID is required"],
+      ref: "Users",
+      required: [true, "Users ID is required"],
     },
     date: {
       type: Date,
@@ -62,7 +62,7 @@ const attendanceSchema = new Schema<IAttendance>(
 );
 
 // Indexes
-attendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
+attendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
 attendanceSchema.index({ date: 1 });
 
 // Calculate hours worked when clock out is set

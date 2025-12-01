@@ -1,4 +1,4 @@
-// src/lib/mongodb/models/User.ts
+// src/lib/mongodb/models/Users.ts
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export enum UserRole {
@@ -11,9 +11,8 @@ export interface IUser extends Document {
   _id: string;
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
-  role: UserRole;
+  name: string;
+  role: String[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -33,21 +32,17 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
+      select: false, // ← ADD THIS LINE - hides password by default
     },
-    firstName: {
+    name: {
       type: String,
-      required: [true, "First name is required"],
-      trim: true,
-    },
-    lastName: {
-      type: String,
-      required: [true, "Last name is required"],
+      required: [true, "Name is required"],
       trim: true,
     },
     role: {
-      type: String,
-      enum: Object.values(UserRole),
-      default: UserRole.EMPLOYEE,
+      type: [String],
+      default: ["EMPLOYEE"],
+      enum: ["ADMIN", "EMPLOYEE", "MANAGER"],
     },
     isActive: {
       type: Boolean,
