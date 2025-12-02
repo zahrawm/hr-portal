@@ -1,10 +1,11 @@
 // src/lib/mongodb/models/Department.ts
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IDepartment extends Document {
   _id: string;
   name: string;
-  code: string;
+  departmentName?: string;
+  status?: string;
   description?: string;
   leadId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -15,15 +16,16 @@ const departmentSchema = new Schema<IDepartment>(
   {
     name: {
       type: String,
-      required: [true, 'Department name is required'],
+      required: [true, "Department name is required"],
       unique: true,
       trim: true,
     },
-    code: {
+    departmentName: {
       type: String,
-      required: [true, 'Department code is required'],
-      unique: true,
-      uppercase: true,
+      trim: true,
+    },
+    status: {
+      type: String,
       trim: true,
     },
     description: {
@@ -32,7 +34,7 @@ const departmentSchema = new Schema<IDepartment>(
     },
     leadId: {
       type: Schema.Types.ObjectId,
-      ref: 'Employee',
+      ref: "Users",
     },
   },
   {
@@ -40,11 +42,10 @@ const departmentSchema = new Schema<IDepartment>(
   }
 );
 
-// Indexes
-departmentSchema.index({ name: 1 });
-departmentSchema.index({ code: 1 });
+// Remove the Indexes section completely - unique: true already creates an index
 
-const Department: Model<IDepartment> = 
-  mongoose.models.Department || mongoose.model<IDepartment>('Department', departmentSchema);
+const Department: Model<IDepartment> =
+  mongoose.models.Department ||
+  mongoose.model<IDepartment>("Department", departmentSchema);
 
 export default Department;

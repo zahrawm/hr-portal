@@ -1,24 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import axios from "axios";
+import { useEffect, useState } from "react";
 
 interface EditDepartmentModalProps {
   onClose?: () => void;
   visible: boolean;
   onSuccess?: () => void;
   mode?: "view" | "edit";
+  department?: any;
 }
 
 export default function EditDepartmentModal({
   onClose,
   onSuccess,
+  department,
 }: EditDepartmentModalProps) {
-  const [name, setName] = useState("Operational");
-  const [description, setDescription] = useState("Brand Awareness Growth");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [showApproveModal, setShowApproveModal] = useState(false);
+
+  // Populate form with department data when modal opens
+  useEffect(() => {
+    if (department) {
+      setName(department.departmentName || "");
+      setDescription(department.description || "");
+    }
+  }, [department]);
 
   const closeModal = () => {
     setShowApproveModal(false);
@@ -32,23 +44,59 @@ export default function EditDepartmentModal({
   };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-    console.log("Role edited:", { name, description });
+    // Clear previous errors
+    setError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setIsLoading(false);
-    setIsOpen(false);
-
-    // Trigger the toast notification
-    if (onSuccess) {
-      onSuccess();
+    // Validate inputs
+    if (!name.trim()) {
+      setError("Department name is required");
+      return;
     }
 
-    // Close the modal
-    if (onClose) {
-      onClose();
+    if (!department?._id) {
+      setError("Department ID is missing");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const payload = {
+        departmentName: name.trim(),
+        description: description.trim(),
+        status: "Active",
+      };
+
+      // Changed from PATCH to PUT to match your API route
+      const response = await axios.put(
+        `/api/departments/${department._id}`,
+        payload
+      );
+
+      console.log("Department updated:", response.data);
+
+      setIsLoading(false);
+      setIsOpen(false);
+
+      // Trigger the toast notification
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close the modal
+      if (onClose) {
+        onClose();
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Error updating department:", err);
+
+      // Handle error response
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Failed to update department. Please try again.");
+      }
     }
   };
 
@@ -95,6 +143,13 @@ export default function EditDepartmentModal({
 
       {/* Form Content */}
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
         {/* Name Input */}
         <div>
           <label
@@ -151,7 +206,7 @@ export default function EditDepartmentModal({
             type="button"
             onClick={handleCancel}
             disabled={isLoading}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base order-2 sm:order-1"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base order-2 sm:order-1"
           >
             Cancel
           </button>

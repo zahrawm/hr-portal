@@ -1,4 +1,4 @@
-// src/lib/mongodb/models/Attendance.ts
+
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IAttendance extends Document {

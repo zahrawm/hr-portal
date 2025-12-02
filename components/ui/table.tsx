@@ -19,12 +19,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import axios from "axios";
 
 import DepartmentModal from "../layout/create-department-modal";
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";
 
 type tableData = {
+  _id?: string;
   actions: string;
   departmentName: string;
   description: string;
@@ -38,7 +40,11 @@ interface TableProps {
   tableDetails: tableData[];
 }
 
-export default function UserTable({ tableDetails }: TableProps) {
+export default function UserTable({
+  tableDetails: initialTableDetails,
+}: TableProps) {
+  const [tableDetails, setTableDetails] =
+    useState<tableData[]>(initialTableDetails);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -56,6 +62,13 @@ export default function UserTable({ tableDetails }: TableProps) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  const [filteredData, setFilteredData] = useState<tableData[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterBy, setFilterBy] = useState<
+    "all" | "departmentName" | "description"
+  >("all");
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+
   const closeModal = () => {
     setShowViewModal(false);
     setShowEditModal(false);
@@ -65,38 +78,86 @@ export default function UserTable({ tableDetails }: TableProps) {
     setShowApproveModal(false);
   };
 
+  const fetchDepartments = async () => {
+    try {
+      console.log("Fetching departments...");
+      const response = await axios.get("/api/departments");
+      console.log("API Response:", response.data);
+
+      if (response.data.success && response.data.data) {
+        const formattedData = response.data.data.map((dept: any) => ({
+          _id: dept._id,
+          actions: "",
+          departmentName: dept.departmentName || dept.name,
+          description: dept.description || "",
+          department: dept.departmentName || dept.name,
+          status: dept.status || "Active",
+          dateCreated: dept.createdAt,
+          role: "",
+        }));
+        console.log("Formatted data:", formattedData);
+        setTableDetails(formattedData);
+      }
+    } catch (error) {
+      console.error("Error fetching departments:", error);
+    }
+  };
+
+  // Fetch departments on component mount
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
   const handleResetPin = () => {
     console.log("Resetting PIN for user:", selectedConflict);
     closeModal();
   };
-  const handleUserAddSuccess = () => {
+
+  const handleUserAddSuccess = async () => {
+    console.log("Department created, refreshing list...");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await fetchDepartments();
     setShowViewModal(false);
     setToastMessage("Department Successfully Created");
     setShowToast(true);
   };
 
-  const handleDelete = () => {
-    console.log("Deleting user:", selectedConflict);
-    closeModal();
-    setToastMessage("Department Deleted Successfully");
-    setShowToast(true);
+  const handleDelete = async () => {
+    if (!selectedConflict?._id) {
+      console.error("No department selected for deletion");
+      return;
+    }
+
+    try {
+      console.log("Deleting department:", selectedConflict);
+
+      await axios.delete(`/api/departments/${selectedConflict._id}`);
+
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      await fetchDepartments();
+
+      closeModal();
+      setToastMessage("Department Deleted Successfully");
+      setShowToast(true);
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      setToastMessage("Failed to delete department");
+      setShowToast(true);
+    }
   };
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = async () => {
+    console.log("Department edited, refreshing list...");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await fetchDepartments();
     setShowEditModal(false);
     setShowApproveModal(false);
     setToastMessage("Department Edited Successfully");
     setShowToast(true);
   };
 
-  const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterBy, setFilterBy] = useState<
-    "all" | "departmentName" | "description"
-  >("all");
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-
   useEffect(() => {
+    console.log("Filtering data. tableDetails length:", tableDetails.length);
     const filtered = tableDetails.filter((item) => {
       const searchLower = searchTerm.toLowerCase();
 
@@ -111,6 +172,7 @@ export default function UserTable({ tableDetails }: TableProps) {
         );
       }
     });
+    console.log("Filtered data length:", filtered.length);
     setFilteredData(filtered);
   }, [searchTerm, filterBy, tableDetails]);
 
@@ -122,9 +184,7 @@ export default function UserTable({ tableDetails }: TableProps) {
         const dateValue = info.getValue();
         const date = new Date(dateValue);
 
-        // Check if date is valid
         if (isNaN(date.getTime())) {
-          // If invalid date, just display the original string
           return (
             <span className="text-sm text-gray-900 dark:text-gray-100">
               {dateValue}
@@ -244,7 +304,6 @@ export default function UserTable({ tableDetails }: TableProps) {
                   setShowDeleteModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
-                  const onSuccess = { handleDelete };
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
@@ -282,8 +341,9 @@ export default function UserTable({ tableDetails }: TableProps) {
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
+    manualPagination: false,
   });
-
   return (
     <>
       <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
@@ -441,7 +501,11 @@ export default function UserTable({ tableDetails }: TableProps) {
               </button>
 
               <button
-                onClick={() => window.location.reload()}
+                onClick={async () => {
+                  await fetchDepartments();
+                  setToastMessage("Data Refreshed Successfully");
+                  setShowToast(true);
+                }}
                 className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
               >
                 <svg
@@ -514,7 +578,8 @@ export default function UserTable({ tableDetails }: TableProps) {
             {/* Pagination - Inside Table */}
             <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 gap-3">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                0 of {filteredData.length} row(s) selected.
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()} ({filteredData.length} total rows)
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
                 <button
@@ -536,7 +601,6 @@ export default function UserTable({ tableDetails }: TableProps) {
           </div>
         )}
       </div>
-
       {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -583,6 +647,7 @@ export default function UserTable({ tableDetails }: TableProps) {
               onClose={closeModal}
               visible={showEditModal}
               onSuccess={handleEditSuccess}
+              department={selectedConflict}
             />
           </div>
         </div>

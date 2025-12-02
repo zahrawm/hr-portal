@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import axios from "axios";
 
 interface DepartmentModalProps {
   onClose?: () => void;
@@ -13,10 +14,11 @@ export default function DepartmentModal({
   onClose,
   onSuccess,
 }: DepartmentModalProps) {
-  const [name, setName] = useState("Operational");
-  const [description, setDescription] = useState("Brand Awareness Growth");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [showApproveModal, setShowApproveModal] = useState(false);
 
@@ -32,23 +34,53 @@ export default function DepartmentModal({
   };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-    console.log("Department created:", { name, description });
+    // Clear previous errors
+    setError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setIsLoading(false);
-    setIsOpen(false);
-
-    // Trigger the toast notification
-    if (onSuccess) {
-      onSuccess();
+    // Validate inputs
+    if (!name.trim()) {
+      setError("Department name is required");
+      return;
     }
 
-    // Close the modal
-    if (onClose) {
-      onClose();
+    setIsLoading(true);
+
+    try {
+      const payload = {
+        departmentName: name.trim(),
+        description: description.trim(),
+        status: "Active", // Default status
+      };
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/departments`,
+        payload
+      );
+
+      console.log("Department created:", response.data);
+
+      setIsLoading(false);
+      setIsOpen(false);
+
+      // Trigger the toast notification
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close the modal
+      if (onClose) {
+        onClose();
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Error creating department:", err);
+
+      // Handle error response
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else {
+        setError("Failed to create department. Please try again.");
+      }
     }
   };
 
@@ -95,6 +127,13 @@ export default function DepartmentModal({
 
       {/* Form Content */}
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
         {/* Name Input */}
         <div>
           <label
