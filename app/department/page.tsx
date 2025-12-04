@@ -68,46 +68,79 @@ const DepartmentManagement: React.FC = () => {
     closeModal();
   };
 
-  const handleExportCSV = () => {
-    // Define CSV headers
-    const headers = [
-      "Department Name",
-      "Description",
-      "Status",
-      "Date Created",
-    ];
+  const handleExportCSV = async () => {
+    try {
+      // Fetch latest data from API
+      const response = await fetch("/api/departments");
+      const result = await response.json();
 
-    // Map user data to CSV rows
-    const rows = users.map((user) => [
-      user.departmentName,
-      user.description,
-      user.status,
-      user.dateCreated,
-    ]);
+      if (!result.success || !result.data || result.data.length === 0) {
+        alert("No departments to export");
+        return;
+      }
 
-    // Combine headers and rows
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
+      const departments = result.data;
 
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
+      // Define CSV headers
+      const headers = [
+        "Department Name",
+        "Description",
+        "Status",
+        "Date Created",
+      ];
 
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `departments_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
+      // Map department data to CSV rows
+      const rows = departments.map((dept: any) => {
+        const date = new Date(dept.createdAt);
+        const formattedDate = date
+          .toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          })
+          .replace(/\//g, "/");
+        const formattedTime = date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        return [
+          dept.departmentName || dept.name,
+          dept.description || "",
+          dept.status || "Active",
+          `${formattedDate} | ${formattedTime}`,
+        ];
+      });
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row: any) =>
+          row.map((cell: any) => `"${cell}"`).join(",")
+        ),
+      ].join("\n");
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `departments_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      alert("Failed to export CSV");
+    }
   };
-
   const users: User[] = [
     {
       actions: "",

@@ -1,24 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import axios from "axios";
+import { useState, useEffect } from "react";
 
 interface EditRoleModalProps {
   onClose?: () => void;
   visible: boolean;
   onSuccess?: () => void;
   mode?: "view" | "edit";
+  roleTitle?: {
+    _id: string;
+    roleName: string;
+    description: string;
+    status: string;
+  };
 }
 
 export default function EditRoleModal({
   onClose,
   onSuccess,
+  roleTitle,
 }: EditRoleModalProps) {
-  const [name, setName] = useState("Operational");
-  const [description, setDescription] = useState("Brand Awareness Growth");
+  const [name, setName] = useState(roleTitle?.roleName || "");
+  const [description, setDescription] = useState(roleTitle?.description || "");
   const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [showApproveModal, setShowApproveModal] = useState(false);
+
+  // Update form when roleTitle changes
+  useEffect(() => {
+    if (roleTitle) {
+      setName(roleTitle.roleName || "");
+      setDescription(roleTitle.description || "");
+    }
+  }, [roleTitle]);
 
   const closeModal = () => {
     setShowApproveModal(false);
@@ -32,23 +49,65 @@ export default function EditRoleModal({
   };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-    console.log("Role created:", { name, description });
+    // Clear previous errors
+    setError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setIsLoading(false);
-    setIsOpen(false);
-
-    // Trigger the toast notification
-    if (onSuccess) {
-      onSuccess();
+    // Validate inputs
+    if (!name.trim()) {
+      setError("Role name is required");
+      return;
     }
 
-    // Close the modal
-    if (onClose) {
-      onClose();
+    if (!roleTitle?._id) {
+      setError("Role ID is missing");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const payload = {
+        roleName: name.trim(),
+        description: description.trim(),
+        status: "Active",
+      };
+
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await fetch(`/api/role-titles/${roleTitle._id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to update role");
+      }
+
+      console.log("Role updated:", result);
+
+      setIsLoading(false);
+      setIsOpen(false);
+
+      // Trigger the toast notification
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close the modal
+      if (onClose) {
+        onClose();
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Error updating role:", err);
+      setError(err.message || "Failed to update role. Please try again.");
     }
   };
 
@@ -95,7 +154,13 @@ export default function EditRoleModal({
 
       {/* Form Content */}
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Name Input */}
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
         {/* Name Input */}
         <div>
           <label

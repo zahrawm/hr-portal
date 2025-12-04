@@ -12,8 +12,22 @@ import {
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import axios from "axios";
 
-const EditEmployeeForm = () => {
+interface EditEmployeeFormProps {
+  employeeId?: string;
+  initialData?: {
+    name?: string;
+    email?: string;
+    role?: string[];
+    isActive?: boolean;
+  };
+}
+
+const EditEmployeeForm = ({
+  employeeId,
+  initialData,
+}: EditEmployeeFormProps) => {
   const { theme } = useTheme();
   const isDarkMode = theme === "dark";
 
@@ -21,12 +35,18 @@ const EditEmployeeForm = () => {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [selectedRole, setSelectedRole] = useState("");
+  const [selectedRole, setSelectedRole] = useState(
+    initialData?.role?.[0] || ""
+  );
   const [selectedDate, setSelectedDate] = useState("");
-  const [isActive, setIsActive] = useState(false);
+  const [isActive, setIsActive] = useState(initialData?.isActive || false);
   const [searchRole, setSearchRole] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [name, setName] = useState(initialData?.name || "");
+  const [email, setEmail] = useState(initialData?.email || "");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const roles = [
     "Product Designer",
@@ -96,15 +116,65 @@ const EditEmployeeForm = () => {
     "December",
   ];
 
-  const handleEditEmployee = () => {
+  const handleEditEmployee = async () => {
+    // Validate inputs
+    if (!name.trim()) {
+      alert("Name is required");
+      return;
+    }
+    if (!email.trim()) {
+      alert("Email is required");
+      return;
+    }
+
+    if (!selectedRole) {
+      alert("Role is required");
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const payload: any = {
+        id: employeeId,
+        name: name.trim(),
+        email: email.trim(),
+        role: [selectedRole.toUpperCase().replace(/\s+/g, "_")],
+        isActive: isActive,
+      };
+
+      // Only include password if provided
+
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await axios.put(`/api/users`, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log("User updated:", response.data);
+
       setIsLoading(false);
       setShowToast(true);
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
-    }, 2000);
+
+      // Reset password field only
+
+      // Hide toast after 3 seconds
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Error updating user:", err);
+
+      // Handle error response
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
+      } else {
+        alert("Failed to update user. Please try again.");
+      }
+    }
   };
 
   return (
@@ -112,7 +182,7 @@ const EditEmployeeForm = () => {
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-8 right-8 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in">
-          <span className="font-medium">Employee Successfully Added</span>
+          <span className="font-medium">Employee Successfully Updated</span>
           <button
             onClick={() => setShowToast(false)}
             className="hover:bg-green-700 rounded p-1"
@@ -156,6 +226,13 @@ const EditEmployeeForm = () => {
 
         {/* Form */}
         <div className="space-y-6">
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           {/* Name and Email Row */}
           <div className="grid grid-cols-2 gap-6">
             <div>
@@ -169,6 +246,9 @@ const EditEmployeeForm = () => {
               <input
                 type="text"
                 placeholder="Luke Smart"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isLoading}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                   isDarkMode
                     ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500"
@@ -187,6 +267,9 @@ const EditEmployeeForm = () => {
               <input
                 type="email"
                 placeholder="Name@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                   isDarkMode
                     ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500"
@@ -212,6 +295,7 @@ const EditEmployeeForm = () => {
                   setShowRoleDropdown(false);
                   setShowDatePicker(false);
                 }}
+                disabled={isLoading}
                 className={`w-full px-4 py-2.5 border rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent flex items-center justify-between ${
                   isDarkMode
                     ? "bg-gray-700 border-gray-600 text-gray-400"
@@ -260,6 +344,7 @@ const EditEmployeeForm = () => {
                   setShowDepartmentDropdown(false);
                   setShowDatePicker(false);
                 }}
+                disabled={isLoading}
                 className={`w-full px-4 py-2.5 border rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent flex items-center justify-between ${
                   isDarkMode
                     ? "bg-gray-700 border-gray-600 text-gray-400"
@@ -338,6 +423,7 @@ const EditEmployeeForm = () => {
                 setShowDepartmentDropdown(false);
                 setShowRoleDropdown(false);
               }}
+              disabled={isLoading}
               className={`w-full px-4 py-2.5 border rounded-lg text-left focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent flex items-center justify-between ${
                 isDarkMode
                   ? "bg-gray-700 border-gray-600 text-gray-400"
@@ -480,6 +566,7 @@ const EditEmployeeForm = () => {
               </span>
               <button
                 onClick={() => setIsActive(!isActive)}
+                disabled={isLoading}
                 className={`relative w-12 h-6 rounded-full transition-colors ${
                   isActive
                     ? "bg-emerald-500"

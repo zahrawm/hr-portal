@@ -43,8 +43,7 @@ interface TableProps {
 export default function UserTable({
   tableDetails: initialTableDetails,
 }: TableProps) {
-  const [tableDetails, setTableDetails] =
-    useState<tableData[]>(initialTableDetails);
+  const [tableDetails, setTableDetails] = useState<tableData[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -122,30 +121,43 @@ export default function UserTable({
     setShowToast(true);
   };
 
+  // Add this handleDelete function implementation to your UserTable component
+  // Replace the empty handleDelete function with this:
+
+  // Delete single department
+  // Delete single department - FIXED VERSION
+  // Replace the handleDelete function in your UserTable component with this:
+
   const handleDelete = async () => {
-    if (!selectedConflict?._id) {
-      console.error("No department selected for deletion");
-      return;
-    }
+    if (!selectedConflict?._id) return;
 
     try {
-      console.log("Deleting department:", selectedConflict);
+      // Get token from localStorage or wherever you store it
+      const token = localStorage.getItem("token"); // Adjust this based on where you store the token
 
-      await axios.delete(`/api/departments/${selectedConflict._id}`);
+      const response = await fetch("/api/departments", {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`, // Add Authorization header
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: selectedConflict._id }),
+      });
 
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      await fetchDepartments();
+      const result = await response.json();
 
-      closeModal();
-      setToastMessage("Department Deleted Successfully");
-      setShowToast(true);
-    } catch (error) {
-      console.error("Error deleting department:", error);
-      setToastMessage("Failed to delete department");
-      setShowToast(true);
+      if (result.success) {
+        await fetchDepartments(); // Refresh the list
+        closeModal();
+        setToastMessage("Department Deleted Successfully");
+        setShowToast(true);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
     }
   };
-
   const handleEditSuccess = async () => {
     console.log("Department edited, refreshing list...");
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -341,8 +353,8 @@ export default function UserTable({
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    autoResetPageIndex: false,
-    manualPagination: false,
+    autoResetPageIndex: false, // Add this line
+    manualPagination: false, // Add this line to ensure automatic pagination
   });
   return (
     <>

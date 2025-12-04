@@ -10,10 +10,11 @@ interface RoleModalProps {
 }
 
 export default function RoleModal({ onClose, onSuccess }: RoleModalProps) {
-  const [name, setName] = useState("Operational");
-  const [description, setDescription] = useState("Brand Awareness Growth");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [isOpen, setIsOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [showApproveModal, setShowApproveModal] = useState(false);
 
@@ -29,23 +30,60 @@ export default function RoleModal({ onClose, onSuccess }: RoleModalProps) {
   };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-    console.log("Role created:", { name, description });
+    // Clear previous errors
+    setError("");
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    setIsLoading(false);
-    setIsOpen(false);
-
-    // Trigger the toast notification
-    if (onSuccess) {
-      onSuccess();
+    // Validate inputs
+    if (!name.trim()) {
+      setError("Role name is required");
+      return;
     }
 
-    // Close the modal
-    if (onClose) {
-      onClose();
+    setIsLoading(true);
+
+    try {
+      const payload = {
+        roleName: name.trim(),
+        description: description.trim(),
+        status: "Active",
+      };
+
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/role-titles", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to create role");
+      }
+
+      console.log("Role created:", result);
+
+      setIsLoading(false);
+      setIsOpen(false);
+
+      // Trigger the toast notification
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      // Close the modal
+      if (onClose) {
+        onClose();
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Error creating role:", err);
+      setError(err.message || "Failed to create role. Please try again.");
     }
   };
 
@@ -92,7 +130,13 @@ export default function RoleModal({ onClose, onSuccess }: RoleModalProps) {
 
       {/* Form Content */}
       <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
-        {/* Name Input */}
+        {/* Error Message */}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          </div>
+        )}
+
         {/* Name Input */}
         <div>
           <label

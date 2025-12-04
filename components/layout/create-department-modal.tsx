@@ -52,9 +52,18 @@ export default function DepartmentModal({
         status: "Active", // Default status
       };
 
+      // Get token from localStorage or wherever you store it
+      const token = localStorage.getItem("token"); // Adjust this based on where you store the token
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/departments`,
-        payload
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Add Authorization header
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       console.log("Department created:", response.data);

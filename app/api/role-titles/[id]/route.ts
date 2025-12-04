@@ -1,13 +1,11 @@
-// ============================================
-// app/api/departments/[id]/route.ts
-// ============================================
+// app/api/role-titles/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb/connection";
 import Department from "@/lib/mongodb/models/Department";
 import mongoose from "mongoose";
 import { authenticate, hasRole } from "@/lib/middleware/auth";
-
-// GET: Fetch single department by ID
+import { RoleTitle } from "@/lib/mongodb/models";
+// GET: Fetch single role title by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -21,19 +19,19 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid department ID",
+          error: "Invalid role title ID",
         },
         { status: 400 }
       );
     }
 
-    const department = await Department.findById(id);
+    const roleTitle = await RoleTitle.findById(id);
 
-    if (!department) {
+    if (!roleTitle) {
       return NextResponse.json(
         {
           success: false,
-          error: "Department not found",
+          error: "Role title not found",
         },
         { status: 404 }
       );
@@ -42,7 +40,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: true,
-        data: department,
+        data: roleTitle,
       },
       { status: 200 }
     );
@@ -50,14 +48,14 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch department",
+        error: error.message || "Failed to fetch role title",
       },
       { status: 500 }
     );
   }
 }
 
-// PUT: Update department by ID (Admin only)
+// PUT: Update role title by ID (Admin only)
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -94,14 +92,14 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid department ID",
+          error: "Invalid role title ID",
         },
         { status: 400 }
       );
     }
 
     const body = await request.json();
-    const { departmentName, status, description } = body;
+    const { roleName, status, description } = body;
 
     // Validate status if provided
     if (
@@ -117,16 +115,17 @@ export async function PUT(
       );
     }
 
-    if (departmentName) {
-      const existingDepartment = await Department.findOne({
-        departmentName: departmentName.trim(),
+    // Check if role title name already exists (excluding current role)
+    if (roleName) {
+      const existingRoleTitle = await RoleTitle.findOne({
+        roleName: roleName.trim(),
         _id: { $ne: id },
       });
-      if (existingDepartment) {
+      if (existingRoleTitle) {
         return NextResponse.json(
           {
             success: false,
-            error: "Department with this name already exists",
+            error: "Role title with this name already exists",
           },
           { status: 409 }
         );
@@ -134,10 +133,7 @@ export async function PUT(
     }
 
     const updateData: any = {};
-    if (departmentName !== undefined) {
-      updateData.departmentName = departmentName.trim();
-      updateData.name = departmentName.trim(); // Keep both in sync
-    }
+    if (roleName !== undefined) updateData.roleName = roleName.trim();
     if (status !== undefined) {
       // Capitalize status
       updateData.status =
@@ -145,16 +141,16 @@ export async function PUT(
     }
     if (description !== undefined) updateData.description = description;
 
-    const department = await Department.findByIdAndUpdate(id, updateData, {
+    const roleTitle = await RoleTitle.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
     });
 
-    if (!department) {
+    if (!roleTitle) {
       return NextResponse.json(
         {
           success: false,
-          error: "Department not found",
+          error: "Role title not found",
         },
         { status: 404 }
       );
@@ -163,8 +159,8 @@ export async function PUT(
     return NextResponse.json(
       {
         success: true,
-        data: department,
-        message: "Department updated successfully",
+        data: roleTitle,
+        message: "Role title updated successfully",
       },
       { status: 200 }
     );
@@ -172,14 +168,14 @@ export async function PUT(
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to update department",
+        error: error.message || "Failed to update role title",
       },
       { status: 500 }
     );
   }
 }
 
-// DELETE: Delete department by ID (Admin only)
+// DELETE: Delete role title by ID (Admin only)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -216,19 +212,19 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid department ID",
+          error: "Invalid role title ID",
         },
         { status: 400 }
       );
     }
 
-    const department = await Department.findByIdAndDelete(id);
+    const roleTitle = await RoleTitle.findByIdAndDelete(id);
 
-    if (!department) {
+    if (!roleTitle) {
       return NextResponse.json(
         {
           success: false,
-          error: "Department not found",
+          error: "Role title not found",
         },
         { status: 404 }
       );
@@ -237,8 +233,8 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: true,
-        message: "Department deleted successfully",
-        data: department,
+        message: "Role title deleted successfully",
+        data: roleTitle,
       },
       { status: 200 }
     );
@@ -246,7 +242,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to delete department",
+        error: error.message || "Failed to delete role title",
       },
       { status: 500 }
     );

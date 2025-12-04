@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import axios from "axios";
 
 const AddEmployeeForm = () => {
   const { theme } = useTheme();
@@ -27,6 +28,8 @@ const AddEmployeeForm = () => {
   const [searchRole, setSearchRole] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
 
   const roles = [
     "Product Designer",
@@ -96,15 +99,73 @@ const AddEmployeeForm = () => {
     "December",
   ];
 
-  const handleAddEmployee = () => {
+  const handleAddEmployee = async () => {
+    // Validate inputs
+    if (!name.trim()) {
+      alert("Name is required");
+      return;
+    }
+    if (!email.trim()) {
+      alert("Email is required");
+      return;
+    }
+
+    if (!selectedRole) {
+      alert("Role is required");
+      return;
+    }
+
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      const payload = {
+        name: name.trim(),
+        email: email.trim(),
+
+        role: [selectedRole.toUpperCase().replace(/\s+/g, "_")],
+      };
+
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/users`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      console.log("User created:", response.data);
+
       setIsLoading(false);
       setShowToast(true);
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
-    }, 2000);
+
+      // Reset form
+      setName("");
+      setEmail("");
+
+      setSelectedDepartment("");
+      setSelectedRole("");
+      setSelectedDate("");
+      setIsActive(false);
+
+      // Hide toast after 3 seconds
+      setTimeout(() => setShowToast(false), 3000);
+    } catch (err: any) {
+      setIsLoading(false);
+      console.error("Error creating user:", err);
+
+      // Handle error response
+      if (err.response?.data?.message) {
+        alert(err.response.data.message);
+      } else {
+        alert("Failed to create user. Please try again.");
+      }
+    }
   };
 
   return (
@@ -173,6 +234,8 @@ const AddEmployeeForm = () => {
               <input
                 type="text"
                 placeholder="Luke Smart"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                   isDarkMode
                     ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500"
@@ -191,6 +254,8 @@ const AddEmployeeForm = () => {
               <input
                 type="email"
                 placeholder="Name@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className={`w-full px-4 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${
                   isDarkMode
                     ? "bg-gray-700 border-gray-600 text-gray-200 placeholder-gray-500"

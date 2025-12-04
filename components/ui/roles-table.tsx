@@ -28,13 +28,13 @@ import RoleModal from "../layout/add-role-modal";
 import EditRoleModal from "../layout/edit-role-modal";
 
 type tableData = {
+  _id?: string;
   actions: string;
   dateCreated: string;
   roleName: string;
   description: string;
   department: string;
   status: string;
-
   role: string;
 };
 
@@ -42,7 +42,10 @@ interface TableProps {
   tableDetails: tableData[];
 }
 
-export default function RoleTable({ tableDetails }: TableProps) {
+export default function RoleTable({
+  tableDetails: initialTableDetails,
+}: TableProps) {
+  const [tableDetails, setTableDetails] = useState<tableData[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -70,33 +73,98 @@ export default function RoleTable({ tableDetails }: TableProps) {
     setShowResetPinModal(false);
     setSelectedConflict(null);
     setShowApproveModal(false);
+    setShowRowViewModal(false);
+    setShowEditRowViewModal(false);
   };
+
+  // Fetch role titles from API
+  const fetchRoleTitles = async () => {
+    try {
+      console.log("Fetching role titles...");
+      const response = await fetch("/api/role-titles");
+      const result = await response.json();
+      console.log("API Response:", result);
+
+      if (result.success && result.data) {
+        const formattedData = result.data.map((role: any) => ({
+          _id: role._id,
+          actions: "",
+          roleName: role.roleName,
+          description: role.description || "",
+          department: "",
+          status: role.status || "Active",
+          dateCreated: role.createdAt,
+          role: "",
+        }));
+        console.log("Formatted data:", formattedData);
+        setTableDetails(formattedData);
+      }
+    } catch (error) {
+      console.error("Error fetching role titles:", error);
+    }
+  };
+
+  // Fetch role titles on component mount
+  useEffect(() => {
+    fetchRoleTitles();
+  }, []);
 
   const handleResetPin = () => {
     console.log("Resetting PIN for user:", selectedConflict);
     closeModal();
   };
-  const handleUserAddSuccess = () => {
-    setShowViewModal(false);
-    setToastMessage(" Roles Successfully Created");
+
+  const handleUserAddSuccess = async () => {
+    console.log("Role created, refreshing list...");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await fetchRoleTitles();
+    setShowRowViewModal(false);
+    setToastMessage("Role Successfully Created");
     setShowToast(true);
   };
 
-  const handleDelete = () => {
-    console.log("Deleting role:", selectedConflict);
-    closeModal();
-    setToastMessage("Role Deleted Successfully");
-    setShowToast(true);
+  const handleDelete = async () => {
+    if (!selectedConflict?._id) return;
+
+    try {
+      // Get token from localStorage
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/role-titles", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ id: selectedConflict._id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchRoleTitles(); // Refresh the list
+        closeModal();
+        setToastMessage("Role Deleted Successfully");
+        setShowToast(true);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error: any) {
+      alert(`Error: ${error.message}`);
+    }
   };
 
-  const handleEditSuccess = () => {
-    setShowEditModal(false);
+  const handleEditSuccess = async () => {
+    console.log("Role edited, refreshing list...");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await fetchRoleTitles();
+    setShowEditRowViewModal(false);
     setShowApproveModal(false);
     setToastMessage("Role Edited Successfully");
     setShowToast(true);
   };
 
-  const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
+  const [filteredData, setFilteredData] = useState<tableData[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterBy, setFilterBy] = useState<"all" | "roleName" | "description">(
     "all"
@@ -129,9 +197,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
         const dateValue = info.getValue();
         const date = new Date(dateValue);
 
-        // Check if date is valid
         if (isNaN(date.getTime())) {
-          // If invalid date, just display the original string
           return (
             <span className="text-sm text-gray-900 dark:text-gray-100">
               {dateValue}
@@ -251,7 +317,6 @@ export default function RoleTable({ tableDetails }: TableProps) {
                   setShowDeleteModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
-                  const onSuccess = { handleDelete };
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
@@ -289,6 +354,8 @@ export default function RoleTable({ tableDetails }: TableProps) {
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    autoResetPageIndex: false,
+    manualPagination: false,
   });
 
   return (
@@ -443,7 +510,11 @@ export default function RoleTable({ tableDetails }: TableProps) {
                 Add Role
               </button>
               <button
-                onClick={() => window.location.reload()}
+                onClick={async () => {
+                  await fetchRoleTitles();
+                  setToastMessage("Data Refreshed Successfully");
+                  setShowToast(true);
+                }}
                 className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
               >
                 <svg
@@ -516,7 +587,8 @@ export default function RoleTable({ tableDetails }: TableProps) {
             {/* Pagination - Inside Table */}
             <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 gap-3">
               <div className="text-sm text-gray-600 dark:text-gray-400">
-                0 of {filteredData.length} row(s) selected.
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()} ({filteredData.length} total rows)
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
                 <button
@@ -585,6 +657,7 @@ export default function RoleTable({ tableDetails }: TableProps) {
               onClose={closeModal}
               visible={showEditRowViewModal}
               onSuccess={handleEditSuccess}
+              roleTitle={selectedConflict}
             />
           </div>
         </div>

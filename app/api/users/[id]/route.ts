@@ -1,4 +1,3 @@
-// src/app/api/users/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -7,99 +6,7 @@ import User, { UserRole } from "@/lib/mongodb/models/Users";
 import { authenticate, hasRole } from "@/lib/middleware/auth";
 
 // -------------------------
-// POST: Create a new user (ADMIN only)
-// -------------------------
-export async function POST(req: NextRequest) {
-  try {
-    const authResult = await authenticate(req);
-    if (authResult.error || !authResult.user) {
-      return NextResponse.json(
-        { success: false, message: authResult.error || "Unauthorized" },
-        { status: authResult.status }
-      );
-    }
-
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
-      return NextResponse.json(
-        { success: false, message: "Forbidden: Admins only" },
-        { status: 403 }
-      );
-    }
-
-    const body = await req.json();
-    const { name, email, password, role } = body;
-
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { success: false, message: "Name, email, and password are required" },
-        { status: 400 }
-      );
-    }
-
-    if (!process.env.JWT_SECRET) {
-      return NextResponse.json(
-        { success: false, message: "JWT_SECRET missing on server" },
-        { status: 500 }
-      );
-    }
-
-    await connectDB();
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json(
-        { success: false, message: "Email already exists" },
-        { status: 409 }
-      );
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-      role: Array.isArray(role) ? role : [UserRole.EMPLOYEE],
-    });
-
-    const token = jwt.sign(
-      {
-        id: newUser._id,
-        email: newUser.email,
-        roles: newUser.role,
-        type: "access",
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "User created successfully",
-        token,
-        user: {
-          _id: newUser._id,
-          name: newUser.name,
-          email: newUser.email,
-          role: newUser.role,
-          isActive: newUser.isActive,
-          createdAt: newUser.createdAt,
-        },
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Create User Error:", error);
-    return NextResponse.json(
-      { success: false, message: "Failed to create user" },
-      { status: 500 }
-    );
-  }
-}
-
-// -------------------------
-// GET: Get all users (ADMIN/Manager)
+// GET: Get users (by ID or all) (ADMIN/Manager)
 // -------------------------
 export async function GET(req: NextRequest) {
   try {
@@ -119,8 +26,26 @@ export async function GET(req: NextRequest) {
     }
 
     await connectDB();
-    const users = await User.find().select("-password"); // exclude passwords
-    return NextResponse.json({ success: true, users }, { status: 200 });
+
+    // Get the 'id' query parameter if it exists
+    const url = new URL(req.url);
+    const userId = url.searchParams.get("id");
+
+    if (userId) {
+      // Fetch single user by ID
+      const user = await User.findById(userId).select("-password");
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "User not found" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ success: true, user }, { status: 200 });
+    } else {
+      // Fetch all users
+      const users = await User.find().select("-password");
+      return NextResponse.json({ success: true, users }, { status: 200 });
+    }
   } catch (error) {
     console.error("Get Users Error:", error);
     return NextResponse.json(

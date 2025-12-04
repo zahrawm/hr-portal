@@ -1,12 +1,12 @@
-// ============================================
-// app/api/departments/route.ts
-// ============================================
+// app/api/role-titles/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb/connection";
 import Department from "@/lib/mongodb/models/Department";
 import mongoose from "mongoose";
 import { authenticate, hasRole } from "@/lib/middleware/auth";
+import { RoleTitle } from "@/lib/mongodb/models";
 
+// GET: Fetch all role titles with pagination and search
 export async function GET(request: NextRequest) {
   try {
     await connectDB();
@@ -21,24 +21,24 @@ export async function GET(request: NextRequest) {
     const query = search
       ? {
           $or: [
-            { departmentName: { $regex: search, $options: "i" } },
+            { roleName: { $regex: search, $options: "i" } },
             { description: { $regex: search, $options: "i" } },
             { status: { $regex: search, $options: "i" } },
           ],
         }
       : {};
 
-    const departments = await Department.find(query)
+    const roleTitles = await RoleTitle.find(query)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    const total = await Department.countDocuments(query);
+    const total = await RoleTitle.countDocuments(query);
 
     return NextResponse.json(
       {
         success: true,
-        data: departments,
+        data: roleTitles,
         pagination: {
           page,
           limit,
@@ -52,14 +52,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch departments",
+        error: error.message || "Failed to fetch role titles",
       },
       { status: 500 }
     );
   }
 }
 
-// POST: Create a new department (Admin only)
+// POST: Create a new role title (Admin only)
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
@@ -88,13 +88,13 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { departmentName, status, description } = body;
+    const { roleName, status, description } = body;
 
-    if (!departmentName) {
+    if (!roleName) {
       return NextResponse.json(
         {
           success: false,
-          error: "Department name is required",
+          error: "Role title name is required",
         },
         { status: 400 }
       );
@@ -114,14 +114,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingDepartment = await Department.findOne({
-      departmentName: departmentName.trim(),
+    // Check if role title already exists
+    const existingRoleTitle = await RoleTitle.findOne({
+      roleName: roleName.trim(),
     });
-    if (existingDepartment) {
+    if (existingRoleTitle) {
       return NextResponse.json(
         {
           success: false,
-          error: "Department with this name already exists",
+          error: "Role title with this name already exists",
         },
         { status: 409 }
       );
@@ -132,9 +133,8 @@ export async function POST(request: NextRequest) {
       ? status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()
       : "Active";
 
-    const department = await Department.create({
-      name: departmentName.trim(),
-      departmentName: departmentName.trim(),
+    const roleTitle = await RoleTitle.create({
+      roleName: roleName.trim(),
       status: normalizedStatus,
       description,
     });
@@ -142,8 +142,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        data: department,
-        message: "Department created successfully",
+        data: roleTitle,
+        message: "Role title created successfully",
       },
       { status: 201 }
     );
@@ -151,14 +151,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to create department",
+        error: error.message || "Failed to create role title",
       },
       { status: 500 }
     );
   }
 }
 
-// DELETE: Delete department(s) - supports both single ID and bulk delete (Admin only)
+// DELETE: Delete role title(s) - supports both single ID and bulk delete (Admin only)
 export async function DELETE(request: NextRequest) {
   try {
     // Authenticate user
@@ -191,23 +191,13 @@ export async function DELETE(request: NextRequest) {
 
     // Handle single delete
     if (id) {
-      if (!mongoose.Types.ObjectId.isValid(id)) {
+      const roleTitle = await RoleTitle.findByIdAndDelete(id);
+
+      if (!roleTitle) {
         return NextResponse.json(
           {
             success: false,
-            error: "Invalid department ID",
-          },
-          { status: 400 }
-        );
-      }
-
-      const department = await Department.findByIdAndDelete(id);
-
-      if (!department) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Department not found",
+            error: "Role title not found",
           },
           { status: 404 }
         );
@@ -216,8 +206,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           success: true,
-          message: "Department deleted successfully",
-          data: department,
+          message: "Role title deleted successfully",
+          data: roleTitle,
         },
         { status: 200 }
       );
@@ -225,28 +215,14 @@ export async function DELETE(request: NextRequest) {
 
     // Handle bulk delete
     if (ids && Array.isArray(ids)) {
-      // Validate all IDs
-      const invalidIds = ids.filter(
-        (id) => !mongoose.Types.ObjectId.isValid(id)
-      );
-      if (invalidIds.length > 0) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "One or more invalid department IDs",
-          },
-          { status: 400 }
-        );
-      }
-
-      const result = await Department.deleteMany({
+      const result = await RoleTitle.deleteMany({
         _id: { $in: ids },
       });
 
       return NextResponse.json(
         {
           success: true,
-          message: `${result.deletedCount} department(s) deleted successfully`,
+          message: `${result.deletedCount} role title(s) deleted successfully`,
           deletedCount: result.deletedCount,
         },
         { status: 200 }
@@ -264,7 +240,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to delete department(s)",
+        error: error.message || "Failed to delete role title(s)",
       },
       { status: 500 }
     );

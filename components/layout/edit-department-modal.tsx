@@ -67,10 +67,18 @@ export default function EditDepartmentModal({
         status: "Active",
       };
 
-      // Changed from PATCH to PUT to match your API route
+      // Get token from localStorage or wherever you store it
+      const token = localStorage.getItem("token"); // Adjust this based on where you store the token
+
       const response = await axios.put(
         `/api/departments/${department._id}`,
-        payload
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Add Authorization header
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       console.log("Department updated:", response.data);

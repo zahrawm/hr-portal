@@ -12,7 +12,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: String[];
+  role: UserRole[];
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -32,7 +32,7 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
-      select: false, // ← ADD THIS LINE - hides password by default
+      select: false,
     },
     name: {
       type: String,
@@ -41,8 +41,8 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: [String],
-      default: ["EMPLOYEE"],
-      enum: ["ADMIN", "EMPLOYEE", "MANAGER"],
+      default: [UserRole.EMPLOYEE],
+      enum: Object.values(UserRole),
     },
     isActive: {
       type: Boolean,

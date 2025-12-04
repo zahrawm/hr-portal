@@ -1,19 +1,20 @@
 import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
-import User, { IUser } from "@/lib/models/user";
-import connectDB from "@/lib/db";
+import connectDB from "../mongodb/connection";
+import User from "../mongodb/models/Users";
 
 interface DecodedToken {
   id: string;
-  phone_number: string;
+  email: string;
   roles?: string[];
+  role?: string[];
   type?: string;
 }
 
 interface AuthResult {
   user?: {
     id: string;
-    phone_number: string;
+    email: string;
     roles: string[];
   };
   error?: string;
@@ -23,8 +24,8 @@ interface AuthResult {
 // Type for the lean() result
 interface LeanUser {
   _id: string;
-  phone_number: string;
-  roles?: string[];
+  email: string;
+  role: string[];
 }
 
 export async function authenticate(req: NextRequest): Promise<AuthResult> {
@@ -67,8 +68,8 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
       decoded = jwt.verify(token, process.env.JWT_SECRET) as DecodedToken;
       console.log("Token decoded successfully:", {
         id: decoded.id,
-        phone: decoded.phone_number,
-        roles: decoded.roles,
+        email: decoded.email,
+        roles: decoded.roles || decoded.role,
       });
     } catch (jwtError) {
       console.error("JWT verification failed:", jwtError);
@@ -92,8 +93,8 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
 
     // Fetch user from database to get current roles
     const user = await User.findById(decoded.id)
-      .select("phone_number roles")
-      .lean<LeanUser>(); // ✅ Add type assertion
+      .select("email role")
+      .lean<LeanUser>();
 
     if (!user) {
       console.log("User not found in database:", decoded.id);
@@ -104,19 +105,23 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
     }
 
     // Ensure roles is an array
-    const userRoles = Array.isArray(user.roles)
-      ? user.roles
-      : user.roles
-      ? [user.roles as unknown as string]
-      : ["field-agent"];
+    const userRoles = Array.isArray(user.role)
+      ? user.role
+      : user.role
+      ? [user.role as unknown as string]
+      : ["EMPLOYEE"];
 
-    console.log("User found:", { id: decoded.id, roles: userRoles });
+    console.log("User found:", {
+      id: decoded.id,
+      email: user.email,
+      roles: userRoles,
+    });
 
     // Return authenticated user with roles from database
     return {
       user: {
         id: decoded.id,
-        phone_number: decoded.phone_number,
+        email: decoded.email,
         roles: userRoles,
       },
       status: 200,
@@ -133,6 +138,6 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
 // Helper function to check if user has required role
 export function hasRole(userRoles: string[], requiredRoles: string[]): boolean {
   return requiredRoles.some((role) =>
-    userRoles.map((r) => r.toLowerCase()).includes(role.toLowerCase())
+    userRoles.map((r) => r.toUpperCase()).includes(role.toUpperCase())
   );
 }

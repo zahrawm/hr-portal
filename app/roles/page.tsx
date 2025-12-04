@@ -65,38 +65,71 @@ const RolesManagement: React.FC = () => {
     closeModal();
   };
 
-  const handleExportCSV = () => {
-    // Define CSV headers
-    const headers = ["Role Name", "Description", "Status", "Date Created"];
+  const handleExportCSV = async () => {
+    try {
+      // Fetch latest data from API
+      const response = await fetch("/api/role-titles");
+      const result = await response.json();
 
-    const rows = roles.map((role) => [
-      role.roleName,
-      role.description,
-      role.status,
-      role.dateCreated,
-    ]);
+      if (!result.success || !result.data || result.data.length === 0) {
+        alert("No roles to export");
+        return;
+      }
 
-    // Combine headers and rows
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
+      const roleTitles = result.data;
 
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
+      const headers = ["Role Name", "Description", "Status", "Date Created"];
 
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `roles_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
+      const rows = roleTitles.map((role: any) => {
+        const date = new Date(role.createdAt);
+        const formattedDate = date
+          .toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          })
+          .replace(/\//g, "/");
+        const formattedTime = date.toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        });
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+        return [
+          role.roleName,
+          role.description || "",
+          role.status || "Active",
+          `${formattedDate} | ${formattedTime}`,
+        ];
+      });
+
+      // Combine headers and rows
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row: any) =>
+          row.map((cell: any) => `"${cell}"`).join(",")
+        ),
+      ].join("\n");
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `roles_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      link.style.visibility = "hidden";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      alert("Failed to export CSV");
+    }
   };
 
   const roles: Roles[] = [

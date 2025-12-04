@@ -51,19 +51,20 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       activeKey: "roles",
     },
     {
-      href: "/employeeslist",
-      label: "Employees List",
-      icon: "../img/circle.svg",
-      isImage: true,
-      activeKey: "employees list",
-    },
-    {
       href: "/manageEmployees",
       label: "Manage Employees",
       icon: "../img/group.svg",
       isImage: true,
       activeKey: "manage employees",
     },
+    {
+      href: "/employeeslist",
+      label: "Employees List",
+      icon: "../img/circle.svg",
+      isImage: true,
+      activeKey: "employees list",
+    },
+
     {
       href: "/employeesProfile",
       label: "Employees Profile",
