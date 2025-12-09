@@ -1,236 +1,81 @@
-// app/api/role-titles/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb/connection";
-import Department from "@/lib/mongodb/models/Department";
-import mongoose from "mongoose";
-import { authenticate, hasRole } from "@/lib/middleware/auth";
-import { RoleTitle } from "@/lib/mongodb/models";
+import LeaveRequest from "@/lib/mongodb/models/LeaveRequest";
 
-// GET: Fetch single role title by ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+interface Params {
+  params: {
+    id: string;
+  };
+}
+
+// GET single leave request
+export async function GET(req: NextRequest, { params }: Params) {
   try {
     await connectDB();
+    const { id } = params;
 
-    const { id } = await params;
+    const leave = await LeaveRequest.findById(id);
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!leave) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid role title ID",
-        },
-        { status: 400 }
-      );
-    }
-
-    const roleTitle = await RoleTitle.findById(id);
-
-    if (!roleTitle) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Role title not found",
-        },
+        { error: "Leave request not found" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: roleTitle,
-      },
-      { status: 200 }
-    );
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to fetch role title",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ data: leave }, { status: 200 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-// PUT: Update role title by ID (Admin only)
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// UPDATE leave request
+export async function PUT(req: NextRequest, { params }: Params) {
   try {
-    // Authenticate user
-    const authResult = await authenticate(request);
-    if (authResult.error || !authResult.user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: authResult.error || "Authentication failed",
-        },
-        { status: authResult.status }
-      );
-    }
-
-    // Check if user is admin
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized. Admin access required.",
-        },
-        { status: 403 }
-      );
-    }
-
     await connectDB();
+    const { id } = params;
+    const body = await req.json();
 
-    const { id } = await params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid role title ID",
-        },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-    const { roleName, status, description } = body;
-
-    // Validate status if provided
-    if (
-      status &&
-      !["Active", "Inactive", "active", "inactive"].includes(status)
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Status must be either 'Active' or 'Inactive'",
-        },
-        { status: 400 }
-      );
-    }
-
-    // REMOVED: Duplicate role name check - allows same role name for multiple users
-
-    const updateData: any = {};
-    if (roleName !== undefined) updateData.roleName = roleName.trim();
-    if (status !== undefined) {
-      // Capitalize status
-      updateData.status =
-        status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-    }
-    if (description !== undefined) updateData.description = description;
-
-    const roleTitle = await RoleTitle.findByIdAndUpdate(id, updateData, {
+    const updated = await LeaveRequest.findByIdAndUpdate(id, body, {
       new: true,
-      runValidators: true,
     });
 
-    if (!roleTitle) {
+    if (!updated) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Role title not found",
-        },
+        { error: "Leave request not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: true,
-        data: roleTitle,
-        message: "Role title updated successfully",
-      },
+      { message: "Leave request updated", data: updated },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to update role title",
-      },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
 
-// DELETE: Delete role title by ID (Admin only)
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// DELETE leave request
+export async function DELETE(req: NextRequest, { params }: Params) {
   try {
-    // Authenticate user
-    const authResult = await authenticate(request);
-    if (authResult.error || !authResult.user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: authResult.error || "Authentication failed",
-        },
-        { status: authResult.status }
-      );
-    }
-
-    // Check if user is admin
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Unauthorized. Admin access required.",
-        },
-        { status: 403 }
-      );
-    }
-
     await connectDB();
+    const { id } = params;
 
-    const { id } = await params;
+    const deleted = await LeaveRequest.findByIdAndDelete(id);
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!deleted) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid role title ID",
-        },
-        { status: 400 }
-      );
-    }
-
-    const roleTitle = await RoleTitle.findByIdAndDelete(id);
-
-    if (!roleTitle) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Role title not found",
-        },
+        { error: "Leave request not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: true,
-        message: "Role title deleted successfully",
-        data: roleTitle,
-      },
+      { message: "Leave request deleted" },
       { status: 200 }
     );
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to delete role title",
-      },
-      { status: 500 }
-    );
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
