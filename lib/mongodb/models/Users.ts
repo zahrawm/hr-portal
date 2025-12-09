@@ -12,7 +12,9 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
-  role: UserRole[];
+  role: UserRole[]; // Permission role (ADMIN/MANAGER/EMPLOYEE)
+  jobTitle: string; // Job title (Backend Developer, Frontend Developer, etc.)
+  department: string; // Department (Operations, CyberSecurity, etc.)
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -41,8 +43,18 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: [String],
-      default: [UserRole.EMPLOYEE],
+      default: [UserRole.ADMIN],
       enum: Object.values(UserRole),
+    },
+    jobTitle: {
+      // NEW FIELD
+      type: String,
+      trim: true,
+    },
+    department: {
+      // NEW FIELD
+      type: String,
+      trim: true,
     },
     isActive: {
       type: Boolean,

@@ -28,21 +28,24 @@ import EditEmployeeForm from "../layout/edit-employee";
 import { useRouter } from "next/navigation";
 
 type tableData = {
+  _id?: string;
   name: string;
-
   email: string;
   department: string;
   status: string;
-
   role: string;
   actions: string;
 };
 
 interface TableProps {
   tableDetails: tableData[];
+  onRefresh?: () => void;
 }
 
-export default function ManageEmployeeTable({ tableDetails }: TableProps) {
+export default function ManageEmployeeTable({
+  tableDetails,
+  onRefresh,
+}: TableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -51,10 +54,14 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
   const router = useRouter();
 
   const handleNavigate = () => {
-    router.push("/addEmployee"); // Navigate to /dashboard
+    router.push("/addEmployee");
   };
-  const handleEdit = () => {
-    router.push("/editEmployee"); // Navigate to /dashboard
+
+  const handleEdit = (employee: tableData) => {
+    // Store employee data in localStorage before navigating
+    localStorage.setItem("editEmployee", JSON.stringify(employee));
+    console.log("Storing employee for edit:", employee); // Debug log
+    router.push("/editEmployee");
   };
 
   const [showViewModal, setShowViewModal] = useState(false);
@@ -87,18 +94,59 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
     console.log("Resetting PIN for user:", selectedConflict);
     closeModal();
   };
+
   const handleUserAddSuccess = () => {
     setShowViewModal(false);
     setshowEditMangeEmployeeModal(false);
     setToastMessage("Employees Successfully Created");
     setShowToast(true);
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
-  const handleDelete = () => {
-    console.log("Deleting user:", selectedConflict);
-    closeModal();
-    setToastMessage(" Employees Deleted Successfully");
-    setShowToast(true);
+  const handleDelete = async () => {
+    if (!selectedConflict?._id) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/users", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ id: selectedConflict._id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success || response.ok) {
+        setToastMessage("Employee deleted successfully");
+        setShowToast(true);
+        closeModal();
+
+        if (onRefresh) {
+          setTimeout(() => {
+            onRefresh();
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      } else {
+        setToastMessage(
+          `Error: ${result.error || "Failed to delete employee"}`
+        );
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error("Error deleting employee:", error);
+      setToastMessage("Error deleting employee");
+      setShowToast(true);
+    }
   };
 
   const handleEditSuccess = () => {
@@ -107,6 +155,9 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
     setToastMessage("Employees Edited Successfully");
     setShowToast(true);
     setshowEditMangeEmployeeModal(false);
+    if (onRefresh) {
+      onRefresh();
+    }
   };
 
   const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
@@ -119,12 +170,12 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
       const searchLower = searchTerm.toLowerCase();
 
       if (filterBy === "name") {
-        return item.department.toLowerCase().includes(searchLower);
+        return item.name.toLowerCase().includes(searchLower);
       } else if (filterBy === "email") {
         return item.email.toLowerCase().includes(searchLower);
       } else {
         return (
-          item.department.toLowerCase().includes(searchLower) ||
+          item.name.toLowerCase().includes(searchLower) ||
           item.email.toLowerCase().includes(searchLower)
         );
       }
@@ -136,42 +187,17 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
 
   const columns = [
     columnHelper.accessor("name", {
-      cell: (info) => {
-        const dateValue = info.getValue();
-        const date = new Date(dateValue);
-
-        // Check if date is valid
-        if (isNaN(date.getTime())) {
-          // If invalid date, just display the original string
-          return (
-            <span className="text-sm text-gray-900 dark:text-gray-100">
-              {dateValue}
-            </span>
-          );
-        }
-
-        const formattedDate = date
-          .toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "2-digit",
-          })
-          .replace(/\//g, "/");
-        const formattedTime = date.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-        return (
-          <span className="text-sm text-gray-900 dark:text-gray-100">{`${formattedDate} | ${formattedTime}`}</span>
-        );
-      },
+      cell: (info) => (
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
+      ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
           Name
         </span>
       ),
-      size: 180,
+      size: 250,
     }),
     columnHelper.accessor("email", {
       cell: (info) => (
@@ -257,8 +283,7 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
             <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
               <button
                 onClick={() => {
-                  handleEdit();
-                  setSelectedConflict(info.row.original);
+                  handleEdit(info.row.original);
                   setOpenDropdownIndex(null);
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -275,7 +300,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
                   setShowDeleteModal(true);
                   setSelectedConflict(info.row.original);
                   setOpenDropdownIndex(null);
-                  const onSuccess = { handleDelete };
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
@@ -318,7 +342,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
   return (
     <>
       <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
-        {/* Search and Actions Bar */}
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <div className="relative flex-1 w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
@@ -395,7 +418,7 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
             onClick={() => {
               handleNavigate();
             }}
-            className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
+            className="w-full sm:w-[180px] sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
           >
             <svg
               className="h-4 w-4"
@@ -411,7 +434,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
           </button>
         </div>
 
-        {/* Empty State - when no results found */}
         {filteredData.length === 0 && tableDetails.length > 0 && (
           <div className="flex flex-col items-center justify-center py-20 px-4">
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
@@ -452,8 +474,14 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
               </button>
 
               <button
-                onClick={() => window.location.reload()}
-                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
+                onClick={() => {
+                  if (onRefresh) {
+                    onRefresh();
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center gap-2"
               >
                 <svg
                   className="h-4 w-4"
@@ -474,7 +502,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
           </div>
         )}
 
-        {/* Table - only show if there are filtered results */}
         {filteredData.length > 0 && (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
@@ -522,7 +549,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
               </table>
             </div>
 
-            {/* Pagination - Inside Table */}
             <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 gap-3">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 0 of {filteredData.length} row(s) selected.
@@ -548,7 +574,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
         )}
       </div>
 
-      {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -560,7 +585,7 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
               Delete this?
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to delete an employee?
+              Are you sure you want to delete this employee?
             </p>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3">
@@ -582,7 +607,6 @@ export default function ManageEmployeeTable({ tableDetails }: TableProps) {
         </div>
       )}
 
-      {/* Toast Notification */}
       <Toast
         message={toastMessage}
         visible={showToast}

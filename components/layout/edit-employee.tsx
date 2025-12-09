@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Search,
-  UserPlus,
-  CirclePlus,
-  Loader2,
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 interface EditEmployeeFormProps {
   employeeId?: string;
@@ -22,35 +20,66 @@ interface EditEmployeeFormProps {
     role?: string[];
     isActive?: boolean;
   };
+  onSuccess?: () => void; // Add callback prop for successful updates
 }
 
 const EditEmployeeForm = ({
   employeeId,
   initialData,
+  onSuccess,
 }: EditEmployeeFormProps) => {
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const isDarkMode = theme === "dark";
+  const router = useRouter();
+
+  // Handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [selectedRole, setSelectedRole] = useState(
-    initialData?.role?.[0] || ""
-  );
+  const [selectedRole, setSelectedRole] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [isActive, setIsActive] = useState(initialData?.isActive || false);
+  const [isActive, setIsActive] = useState(false);
   const [searchRole, setSearchRole] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
-  const [name, setName] = useState(initialData?.name || "");
-  const [email, setEmail] = useState(initialData?.email || "");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [employeeIdState, setEmployeeIdState] = useState("");
+
+  // Load employee data from localStorage on mount
+  useEffect(() => {
+    const storedEmployee = localStorage.getItem("editEmployee");
+    if (storedEmployee) {
+      try {
+        const employeeData = JSON.parse(storedEmployee);
+        console.log("Loaded employee data:", employeeData);
+
+        setEmployeeIdState(employeeData._id || "");
+        setName(employeeData.name || "");
+        setEmail(employeeData.email || "");
+        setSelectedDepartment(employeeData.department || "");
+        setSelectedRole(employeeData.role || "");
+        setIsActive(employeeData.status === "Active");
+
+        // Clear the stored data after loading
+        localStorage.removeItem("editEmployee");
+      } catch (error) {
+        console.error("Error parsing employee data:", error);
+      }
+    }
+  }, []);
 
   const roles = [
     "Product Designer",
-    "Frontend Devloper",
+    "Frontend Developer",
     "Backend Developer",
     "Human Resource Management",
     "Customer Support",
@@ -68,8 +97,7 @@ const EditEmployeeForm = ({
     "Marketing",
   ];
 
-  // Calendar generation
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 4)); // May 2025
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 4));
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -81,18 +109,15 @@ const EditEmployeeForm = ({
 
     const days = [];
 
-    // Previous month days
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       days.push({ day: prevMonthLastDay - i, isCurrentMonth: false });
     }
 
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({ day: i, isCurrentMonth: true });
     }
 
-    // Next month days
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({ day: i, isCurrentMonth: false });
@@ -117,7 +142,6 @@ const EditEmployeeForm = ({
   ];
 
   const handleEditEmployee = async () => {
-    // Validate inputs
     if (!name.trim()) {
       alert("Name is required");
       return;
@@ -126,7 +150,10 @@ const EditEmployeeForm = ({
       alert("Email is required");
       return;
     }
-
+    if (!selectedDepartment) {
+      alert("Department is required");
+      return;
+    }
     if (!selectedRole) {
       alert("Role is required");
       return;
@@ -135,40 +162,63 @@ const EditEmployeeForm = ({
     setIsLoading(true);
 
     try {
-      const payload: any = {
-        id: employeeId,
-        name: name.trim(),
-        email: email.trim(),
-        role: [selectedRole.toUpperCase().replace(/\s+/g, "_")],
-        isActive: isActive,
+      const mapRoleToEnum = (uiRole: string): string => {
+        const roleMap: { [key: string]: string } = {
+          "Product Designer": "EMPLOYEE",
+          "Frontend Developer": "EMPLOYEE",
+          "Backend Developer": "EMPLOYEE",
+          "Human Resource Management": "MANAGER",
+          "Customer Support": "EMPLOYEE",
+        };
+        return roleMap[uiRole] || "EMPLOYEE";
       };
 
-      // Only include password if provided
+      const payload = {
+        id: employeeIdState,
+        name: name.trim(),
+        email: email.trim(),
+        role: [mapRoleToEnum(selectedRole)],
+        jobTitle: selectedRole,
+        department: selectedDepartment,
+        isActive: isActive, // Include the status in the payload
+      };
 
-      // Get token from localStorage
+      console.log("Sending update payload:", payload);
+
       const token = localStorage.getItem("token");
 
-      const response = await axios.put(`/api/users`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/users`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       console.log("User updated:", response.data);
 
       setIsLoading(false);
       setShowToast(true);
 
-      // Reset password field only
+      // Call onSuccess callback to refresh parent component
+      if (onSuccess) {
+        setTimeout(() => {
+          onSuccess();
+        }, 1000);
+      }
 
-      // Hide toast after 3 seconds
-      setTimeout(() => setShowToast(false), 3000);
+      // Hide toast and navigate after 3 seconds
+      setTimeout(() => {
+        setShowToast(false);
+        router.push("/manageEmployees");
+      }, 3000);
     } catch (err: any) {
       setIsLoading(false);
       console.error("Error updating user:", err);
 
-      // Handle error response
       if (err.response?.data?.message) {
         alert(err.response.data.message);
       } else {
@@ -177,9 +227,21 @@ const EditEmployeeForm = ({
     }
   };
 
+  // Prevent hydration mismatch by not rendering theme-dependent content until mounted
+  if (!mounted) {
+    return (
+      <div className="p-8">
+        <div className="max-w-full rounded-lg shadow-sm p-20">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={` p-8 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
-      {/* Toast Notification */}
+    <div className={`p-8 ${isDarkMode ? "bg-gray-900" : "bg-gray-50"}`}>
       {showToast && (
         <div className="fixed top-8 right-8 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in">
           <span className="font-medium">Employee Successfully Updated</span>
@@ -192,12 +254,11 @@ const EditEmployeeForm = ({
         </div>
       )}
 
-      <div className={`max-w-full  rounded-lg shadow-sm p-20 `}>
-        {/* Header */}
+      <div className={`max-w-full rounded-lg shadow-sm p-20`}>
         <div className="flex items-center gap-4 mb-8">
           <div
             className={`p-3 rounded-lg ${
-              isDarkMode ? "bg-gray-00" : "bg-gray-100"
+              isDarkMode ? "bg-gray-700" : "bg-gray-100"
             }`}
           >
             <img
@@ -224,16 +285,13 @@ const EditEmployeeForm = ({
           </div>
         </div>
 
-        {/* Form */}
         <div className="space-y-6">
-          {/* Error Message */}
           {error && (
             <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
 
-          {/* Name and Email Row */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label
@@ -279,7 +337,6 @@ const EditEmployeeForm = ({
             </div>
           </div>
 
-          {/* Department and Role Row */}
           <div className="grid grid-cols-2 gap-6">
             <div className="relative">
               <label
@@ -408,7 +465,6 @@ const EditEmployeeForm = ({
             </div>
           </div>
 
-          {/* Start Date - Full Width */}
           <div className="relative w-full">
             <label
               className={`block text-sm font-medium mb-2 ${
@@ -504,7 +560,7 @@ const EditEmployeeForm = ({
                         }
                       }}
                       className={`py-2 rounded ${
-                        isDarkMode ? "hover:bg-gray-900" : "hover:bg-green-50"
+                        isDarkMode ? "hover:bg-gray-600" : "hover:bg-green-50"
                       } ${
                         !dateObj.isCurrentMonth
                           ? "text-gray-300"
@@ -521,16 +577,15 @@ const EditEmployeeForm = ({
             )}
           </div>
 
-          {/* Employee Status */}
           <div
             className={`flex items-center justify-between py-4 border-t ${
-              isDarkMode ? "border-gray-900" : "border-gray-200"
+              isDarkMode ? "border-gray-700" : "border-gray-200"
             }`}
           >
             <div className="flex items-center gap-3">
               <div
                 className={`p-2 rounded-lg ${
-                  isDarkMode ? "bg-gray-900" : "bg-gray-100"
+                  isDarkMode ? "bg-gray-700" : "bg-gray-100"
                 }`}
               >
                 <img
@@ -549,7 +604,7 @@ const EditEmployeeForm = ({
                 </div>
                 <div
                   className={`text-sm ${
-                    isDarkMode ? "text-gray-400" : "text-gray-900"
+                    isDarkMode ? "text-gray-400" : "text-gray-500"
                   }`}
                 >
                   Decide whether this employee is active on the HR Mini
@@ -559,7 +614,7 @@ const EditEmployeeForm = ({
             <div className="flex items-center gap-3">
               <span
                 className={`text-sm ${
-                  isDarkMode ? "text-gray-400" : "text-gray-900"
+                  isDarkMode ? "text-gray-400" : "text-gray-600"
                 }`}
               >
                 {isActive ? "Active" : "Inactive"}
@@ -571,7 +626,7 @@ const EditEmployeeForm = ({
                   isActive
                     ? "bg-emerald-500"
                     : isDarkMode
-                    ? "bg-gray-900"
+                    ? "bg-gray-600"
                     : "bg-gray-300"
                 }`}
               >
@@ -584,7 +639,6 @@ const EditEmployeeForm = ({
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="pt-4 space-y-3">
             {isLoading ? (
               <div
@@ -612,6 +666,7 @@ const EditEmployeeForm = ({
                   Save Changes
                 </button>
                 <button
+                  onClick={() => router.push("/manageEmployees")}
                   className={`w-full border font-medium py-3 rounded-lg transition-colors ${
                     isDarkMode
                       ? "border-gray-600 text-gray-300 hover:bg-gray-700"

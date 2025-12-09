@@ -27,11 +27,12 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, jobTitle, department, isActive } =
+      body;
 
-    if (!name || !email || !password) {
+    if (!name || !email) {
       return NextResponse.json(
-        { success: false, message: "Name, email, and password are required" },
+        { success: false, message: "Name and email are required" },
         { status: 400 }
       );
     }
@@ -53,13 +54,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Generate a default password if not provided
+    const defaultPassword =
+      password ||
+      `${name.replace(/\s+/g, "")}${Math.floor(Math.random() * 1000)}`;
+    const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
     const newUser = await User.create({
       name,
       email,
       password: hashedPassword,
       role: Array.isArray(role) ? role : [UserRole.EMPLOYEE],
+      jobTitle: jobTitle || "",
+      department: department || "",
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     const token = jwt.sign(
@@ -83,6 +91,8 @@ export async function POST(req: NextRequest) {
           name: newUser.name,
           email: newUser.email,
           role: newUser.role,
+          jobTitle: newUser.jobTitle,
+          department: newUser.department,
           isActive: newUser.isActive,
           createdAt: newUser.createdAt,
         },
@@ -119,8 +129,26 @@ export async function GET(req: NextRequest) {
     }
 
     await connectDB();
-    const users = await User.find().select("-password"); // exclude passwords
-    return NextResponse.json({ success: true, users }, { status: 200 });
+
+    // Get the 'id' query parameter if it exists
+    const url = new URL(req.url);
+    const userId = url.searchParams.get("id");
+
+    if (userId) {
+      // Fetch single user by ID
+      const user = await User.findById(userId).select("-password");
+      if (!user) {
+        return NextResponse.json(
+          { success: false, message: "User not found" },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ success: true, user }, { status: 200 });
+    } else {
+      // Fetch all users
+      const users = await User.find().select("-password");
+      return NextResponse.json({ success: true, users }, { status: 200 });
+    }
   } catch (error) {
     console.error("Get Users Error:", error);
     return NextResponse.json(
@@ -151,7 +179,8 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, name, email, password, role, isActive } = body;
+    const { id, name, email, password, role, jobTitle, department, isActive } =
+      body;
 
     if (!id) {
       return NextResponse.json(
@@ -162,13 +191,30 @@ export async function PUT(req: NextRequest) {
 
     await connectDB();
 
-    const updateData: any = { name, email, role, isActive };
+    // Build update data object with all fields
+    const updateData: any = {
+      name,
+      email,
+      role,
+      isActive,
+    };
+
+    // Only include jobTitle and department if provided
+    if (jobTitle !== undefined) {
+      updateData.jobTitle = jobTitle;
+    }
+    if (department !== undefined) {
+      updateData.department = department;
+    }
+
+    // Only update password if provided
     if (password) {
       updateData.password = await bcrypt.hash(password, 10);
     }
 
     const updatedUser = await User.findByIdAndUpdate(id, updateData, {
       new: true,
+      runValidators: true,
     }).select("-password");
 
     if (!updatedUser) {
@@ -176,6 +222,7 @@ export async function PUT(req: NextRequest) {
         { success: false, message: "User not found" },
         { status: 404 }
       );
+      console.log(password);
     }
 
     return NextResponse.json(

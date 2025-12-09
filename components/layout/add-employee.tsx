@@ -1,22 +1,32 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   Search,
-  UserPlus,
   CirclePlus,
-  Loader2,
   X,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
-const AddEmployeeForm = () => {
+interface AddEmployeeFormProps {
+  onSuccess?: () => void; // Add this prop to notify parent of successful addition
+}
+
+const AddEmployeeForm = ({ onSuccess }: AddEmployeeFormProps) => {
   const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const isDarkMode = theme === "dark";
+  const router = useRouter();
+
+  // Handle hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [showDepartmentDropdown, setShowDepartmentDropdown] = useState(false);
   const [showRoleDropdown, setShowRoleDropdown] = useState(false);
@@ -33,7 +43,7 @@ const AddEmployeeForm = () => {
 
   const roles = [
     "Product Designer",
-    "Frontend Devloper",
+    "Frontend Developer",
     "Backend Developer",
     "Human Resource Management",
     "Customer Support",
@@ -51,8 +61,7 @@ const AddEmployeeForm = () => {
     "Marketing",
   ];
 
-  // Calendar generation
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 4)); // May 2025
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 4));
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -64,18 +73,15 @@ const AddEmployeeForm = () => {
 
     const days = [];
 
-    // Previous month days
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       days.push({ day: prevMonthLastDay - i, isCurrentMonth: false });
     }
 
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({ day: i, isCurrentMonth: true });
     }
 
-    // Next month days
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({ day: i, isCurrentMonth: false });
@@ -100,7 +106,6 @@ const AddEmployeeForm = () => {
   ];
 
   const handleAddEmployee = async () => {
-    // Validate inputs
     if (!name.trim()) {
       alert("Name is required");
       return;
@@ -109,7 +114,10 @@ const AddEmployeeForm = () => {
       alert("Email is required");
       return;
     }
-
+    if (!selectedDepartment) {
+      alert("Department is required");
+      return;
+    }
     if (!selectedRole) {
       alert("Role is required");
       return;
@@ -118,14 +126,26 @@ const AddEmployeeForm = () => {
     setIsLoading(true);
 
     try {
+      const mapRoleToEnum = (uiRole: string): string => {
+        const roleMap: { [key: string]: string } = {
+          "Product Designer": "EMPLOYEE",
+          "Frontend Developer": "EMPLOYEE",
+          "Backend Developer": "EMPLOYEE",
+          "Human Resource Management": "MANAGER",
+          "Customer Support": "EMPLOYEE",
+        };
+        return roleMap[uiRole] || "EMPLOYEE";
+      };
+
       const payload = {
         name: name.trim(),
         email: email.trim(),
-
-        role: [selectedRole.toUpperCase().replace(/\s+/g, "_")],
+        role: [mapRoleToEnum(selectedRole)],
+        jobTitle: selectedRole,
+        department: selectedDepartment,
+        isActive: isActive, // Include the status in the payload
       };
 
-      // Get token from localStorage
       const token = localStorage.getItem("token");
 
       const response = await axios.post(
@@ -147,19 +167,28 @@ const AddEmployeeForm = () => {
       // Reset form
       setName("");
       setEmail("");
-
       setSelectedDepartment("");
       setSelectedRole("");
       setSelectedDate("");
       setIsActive(false);
 
+      // Call onSuccess callback to refresh parent component
+      if (onSuccess) {
+        setTimeout(() => {
+          onSuccess();
+        }, 1000);
+      }
+
       // Hide toast after 3 seconds
-      setTimeout(() => setShowToast(false), 3000);
+      setTimeout(() => {
+        setShowToast(false);
+        // Navigate back to manage employees page
+        router.push("/manageEmployees");
+      }, 3000);
     } catch (err: any) {
       setIsLoading(false);
       console.error("Error creating user:", err);
 
-      // Handle error response
       if (err.response?.data?.message) {
         alert(err.response.data.message);
       } else {
@@ -168,9 +197,21 @@ const AddEmployeeForm = () => {
     }
   };
 
+  // Prevent hydration mismatch by not rendering theme-dependent content until mounted
+  if (!mounted) {
+    return (
+      <div className="h-screen p-8">
+        <div className="max-w-full mx-auto rounded-lg shadow-sm p-20">
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen p-8">
-      {/* Toast Notification */}
       {showToast && (
         <div className="fixed top-8 right-8 bg-green-600 text-white px-6 py-4 rounded-lg shadow-lg flex items-center gap-3 z-50 animate-slide-in">
           <span className="font-medium">Employee Successfully Added</span>
@@ -188,7 +229,6 @@ const AddEmployeeForm = () => {
           isDarkMode ? "bg-gray-800" : "bg-white"
         }`}
       >
-        {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <div
             className={`p-3 rounded-lg ${
@@ -219,9 +259,7 @@ const AddEmployeeForm = () => {
           </div>
         </div>
 
-        {/* Form */}
         <div className="space-y-6">
-          {/* Name and Email Row */}
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label
@@ -265,7 +303,6 @@ const AddEmployeeForm = () => {
             </div>
           </div>
 
-          {/* Department and Role Row */}
           <div className="grid grid-cols-2 gap-6">
             <div className="relative">
               <label
@@ -392,7 +429,6 @@ const AddEmployeeForm = () => {
             </div>
           </div>
 
-          {/* Start Date - Full Width */}
           <div className="relative w-full">
             <label
               className={`block text-sm font-medium mb-2 ${
@@ -504,7 +540,6 @@ const AddEmployeeForm = () => {
             )}
           </div>
 
-          {/* Employee Status */}
           <div
             className={`flex items-center justify-between py-4 border-t ${
               isDarkMode ? "border-gray-700" : "border-gray-200"
@@ -564,7 +599,6 @@ const AddEmployeeForm = () => {
             </div>
           </div>
 
-          {/* Submit Button */}
           <div className="pt-4">
             {isLoading ? (
               <div
@@ -600,3 +634,6 @@ const AddEmployeeForm = () => {
 };
 
 export default AddEmployeeForm;
+
+// Usage in your ManageEmployee or AddEmployee page:
+// <AddEmployeeForm onSuccess={fetchEmployees} />

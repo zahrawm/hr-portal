@@ -121,13 +121,6 @@ export default function UserTable({
     setShowToast(true);
   };
 
-  // Add this handleDelete function implementation to your UserTable component
-  // Replace the empty handleDelete function with this:
-
-  // Delete single department
-  // Delete single department - FIXED VERSION
-  // Replace the handleDelete function in your UserTable component with this:
-
   const handleDelete = async () => {
     if (!selectedConflict?._id) return;
 
@@ -392,7 +385,7 @@ export default function UserTable({
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
                 >
-                  Department Name
+                  DepartmentName
                 </button>
                 <button
                   onClick={() => {

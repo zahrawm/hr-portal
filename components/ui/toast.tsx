@@ -28,7 +28,7 @@ export function Toast({
 
   return (
     <div className="fixed top-4 right-4 z-[100]">
-      <div className="flex items-center gap-3 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg min-w-[300px]">
+      <div className="flex items-center gap-3 bg-[#46A400] text-white px-4 py-3 rounded-lg shadow-lg min-w-[300px]">
         <svg
           className="h-5 w-5 flex-shrink-0"
           fill="none"
@@ -45,7 +45,7 @@ export function Toast({
         <span className="flex-1 font-medium">{message}</span>
         <button
           onClick={onClose}
-          className="flex-shrink-0 hover:bg-green-700 rounded p-0.5 transition-colors"
+          className="flex-shrink-0 hover:bg-[#46A400] rounded p-0.5 transition-colors"
         >
           <X className="h-4 w-4" />
         </button>

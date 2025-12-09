@@ -45,6 +45,7 @@ export async function GET(req: NextRequest) {
       // Fetch all users
       const users = await User.find().select("-password");
       return NextResponse.json({ success: true, users }, { status: 200 });
+      
     }
   } catch (error) {
     console.error("Get Users Error:", error);

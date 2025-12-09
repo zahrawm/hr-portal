@@ -16,7 +16,7 @@ const roleTitleSchema = new Schema<IRoleTitle>(
     roleName: {
       type: String,
       required: [true, "Role title name is required"],
-      unique: true,
+      // REMOVED: unique: true - allows multiple roles with same name
       trim: true,
     },
     status: {

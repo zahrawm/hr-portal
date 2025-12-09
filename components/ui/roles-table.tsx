@@ -438,7 +438,7 @@ export default function RoleTable({
             onClick={() => {
               setShowRowViewModal(true);
             }}
-            className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
+            className="w-full sm:w-[180px] sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
           >
             <svg
               className="h-4 w-4"
@@ -495,7 +495,7 @@ export default function RoleTable({
                 onClick={() => {
                   setShowRowViewModal(true);
                 }}
-                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
+                className="w-full sm:w-[180px] sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
               >
                 <svg
                   className="h-4 w-4"

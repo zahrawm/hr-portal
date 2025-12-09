@@ -6,27 +6,27 @@ import {
   Download,
   X,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/app";
 import UserTable from "@/components/ui/table";
-import DepartmentModal from "@/components/layout/create-department-modal";
-import RoleTable from "@/components/ui/roles-table";
-import RoleModal from "@/components/layout/add-role-modal";
-import EmployeesListTable from "@/components/ui/employees-list";
+import ManageEmployeeTable from "@/components/ui/manage-employee-table";
+import AddEmployeeForm from "@/components/layout/add-employee";
+import axios from "axios";
+import EmployeeListTable from "@/components/ui/employees-list";
 
-type ConflictType = EmployeesList | null;
+type ConflictType = ManageEmployee | null;
 
-interface EmployeesList {
+interface ManageEmployee {
+  _id?: string;
   name: string;
-
   email: string;
   department: string;
   status: string;
-
   role: string;
+  actions: string;
 }
 
-const EmployeesList: React.FC = () => {
+const ManageEmployee: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("Ghana");
   const [selectedRole, setSelectedRole] = useState("Role");
@@ -43,9 +43,84 @@ const EmployeesList: React.FC = () => {
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
   );
-  const [showRowViewModal, setShowRowViewModal] = useState(false);
+  const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
+
+  // New state for employee data
+  const [manageEmployees, setManageEmployees] = useState<ManageEmployee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Function to fetch employees from API
+  const fetchEmployees = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const token = localStorage.getItem("token");
+
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("API Response:", response.data); // Debug log
+
+      // Handle different response structures
+      let employeeData = response.data;
+
+      // If data is wrapped in an object (e.g., { data: [], success: true })
+      if (response.data.data && Array.isArray(response.data.data)) {
+        employeeData = response.data.data;
+      }
+      // If data is wrapped in users property
+      else if (response.data.users && Array.isArray(response.data.users)) {
+        employeeData = response.data.users;
+      }
+      // If response.data is not an array, make it an empty array
+      else if (!Array.isArray(employeeData)) {
+        console.warn("Response data is not an array:", employeeData);
+        employeeData = [];
+      }
+
+      // Format data for table
+      const formattedData = employeeData.map((employee: any) => ({
+        _id: employee._id || employee.id,
+        name: employee.name || "",
+        email: employee.email || "",
+        department: employee.department || "",
+        status:
+          employee.isActive !== undefined
+            ? employee.isActive
+              ? "Active"
+              : "Inactive"
+            : "Inactive",
+        role: employee.jobTitle || "", // Display jobTitle instead of role
+        actions: "",
+      }));
+
+      console.log("Formatted data:", formattedData); // Debug log to see formatted data
+
+      setManageEmployees(formattedData);
+    } catch (err: any) {
+      console.error("Error fetching employees:", err);
+      setError(err.response?.data?.message || "Failed to fetch employees");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch employees on component mount
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
   const closeModal = () => {
     setShowViewModal(false);
+    setshowMangeEmployeeModal(false);
     setShowEditModal(false);
     setShowDeleteModal(false);
     setShowApproveModal(false);
@@ -62,7 +137,12 @@ const EmployeesList: React.FC = () => {
   };
 
   const handleDelete = () => {
-    console.log("Deletingrole:", selectedConflict);
+    console.log("Deleting employee:", selectedConflict);
+    closeModal();
+  };
+
+  const handleResetPin = () => {
+    console.log("Resetting PIN for user:", selectedConflict);
     closeModal();
   };
 
@@ -70,12 +150,12 @@ const EmployeesList: React.FC = () => {
     // Define CSV headers
     const headers = ["Name", "Email", "Department", "Role", "Status"];
 
-    const rows = employeesList.map((employeesList) => [
-      employeesList.name,
-      employeesList.email,
-      employeesList.department,
-      employeesList.role,
-      employeesList.status,
+    const rows = manageEmployees.map((employee) => [
+      employee.name,
+      employee.email,
+      employee.department,
+      employee.role,
+      employee.status,
     ]);
 
     // Combine headers and rows
@@ -92,7 +172,7 @@ const EmployeesList: React.FC = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `employees_list_${new Date().toISOString().split("T")[0]}.csv`
+      `employees_${new Date().toISOString().split("T")[0]}.csv`
     );
     link.style.visibility = "hidden";
 
@@ -101,82 +181,71 @@ const EmployeesList: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const employeesList: EmployeesList[] = [
-    {
-      name: "John Doe",
-
-      email: "john.doe@example.com",
-
-      department: "CyberSecurity",
-      role: "Product Developer",
-      status: "Active",
-    },
-    {
-      name: "John Doe",
-
-      email: "john.doe@example.com",
-
-      department: "CyberSecurity",
-      role: "Security Analyst",
-      status: "Active",
-    },
-    {
-      name: "Kwame",
-
-      email: "john.doe@example.com",
-
-      department: "Operations",
-      role: "PRO",
-      status: "Active",
-    },
-    {
-      name: "Luke",
-
-      email: "lukesmart@gmail.com",
-
-      department: "Operations",
-      role: "Chief Executive",
-      status: "Active",
-    },
-    {
-      name: "Luke",
-
-      email: "lukesmart@gmail.com",
-
-      department: "Operations",
-      role: "Hr",
-      status: "Active",
-    },
-    {
-      name: "Linda",
-
-      email: "linda@gmail.com",
-
-      department: "Operations",
-      role: "Head of Department",
-      status: "Active",
-    },
-    {
-      name: "Yakubu",
-
-      email: "yakubu@gmail.com",
-
-      department: "Operations",
-      role: "Security Analyst",
-      status: "Active",
-    },
-    {
-      name: "Swaatson",
-
-      email: "swaatson@gmail.com",
-
-      department: "Software Engineering",
-      role: "Backend",
-      status: "Active",
-    },
-  ];
+  const handleRefresh = () => {
+    fetchEmployees();
+  };
 
   const totalPages = 10;
+
+  // Loading State
+  if (isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-3">
+            <img
+              src="../img/loader.svg"
+              alt="Loading"
+              className="h-8 w-8 animate-spin"
+            />
+            <span className="text-gray-600 dark:text-gray-400">
+              Loading employees...
+            </span>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // Error State
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="flex flex-col items-center gap-3">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+              <X className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              Error Loading Employees
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md">
+              {error}
+            </p>
+            <button
+              onClick={handleRefresh}
+              className="mt-4 flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Retry
+            </button>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
@@ -185,7 +254,7 @@ const EmployeesList: React.FC = () => {
         <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
           <CheckCircle className="h-5 w-5 flex-shrink-0" />
           <span className="font-medium text-sm sm:text-base">
-            New EmployeesList created successfully
+            New employees added successfully
           </span>
           <button
             onClick={() => setShowSuccessNotification(false)}
@@ -201,8 +270,8 @@ const EmployeesList: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
             <img
-              src="../img/circle.svg"
-              alt="Employees List Icon"
+              src="../img/group.svg"
+              alt="Manage Employee Icon"
               className="h-6 w-6"
             />
           </div>
@@ -211,7 +280,7 @@ const EmployeesList: React.FC = () => {
               Employees List
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Manage the employees list for the HR Mini
+              View the list of employees for the HR Mini
             </p>
           </div>
         </div>
@@ -221,7 +290,7 @@ const EmployeesList: React.FC = () => {
         >
           <img
             src="../img/leftf.svg"
-            alt="Employees List Icon"
+            alt="Department Icon"
             className="h-4 w-4"
           />
           Export CSV
@@ -229,32 +298,32 @@ const EmployeesList: React.FC = () => {
       </div>
 
       {/* User Table or Empty State */}
-      {employeesList.length === 0 ? (
+      {manageEmployees.length === 0 ? (
         // Empty State
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
-                src="../img/square.svg"
-                alt="Employees List Icon"
+                src="../img/department.svg"
+                alt="Department Icon"
                 className="h-8 w-8"
               />
             </div>
 
             <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
-              No Employees List yet
+              No Employee added yet
             </h3>
 
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6 px-4">
-              Looks like there are no employeesList created on HR mini. Click
-              the "Refresh" button to reload the page or click the "Add
-              Employee" button to add an employee
+              Looks like there are no employees created on HR mini. Click the
+              "Refresh" button to reload the page or click the "Add Employee"
+              button to create an employee
             </p>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto px-4">
               <button
                 onClick={() => {
-                  setShowRowViewModal(true);
+                  setshowMangeEmployeeModal(true);
                 }}
                 className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
               >
@@ -268,25 +337,13 @@ const EmployeesList: React.FC = () => {
                   <circle cx="12" cy="12" r="7" />
                   <path d="M12 9v6M9 12h6" strokeLinecap="round" />
                 </svg>
-                Add Role
+                Add Employee
               </button>
-              {/* AddNewUserForm Modal */}
-              {showRowViewModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                  <div
-                    className="absolute inset-0 bg-black opacity-50"
-                    onClick={closeModal}
-                  ></div>
-                  <div className="relative z-[60] rounded-lg bg-white shadow-lg w-full max-w-2xl">
-                    <RoleModal
-                      onClose={closeModal}
-                      visible={showRowViewModal}
-                      onSuccess={handleUserAddSuccess}
-                    />
-                  </div>
-                </div>
-              )}
-              <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+
+              <button
+                onClick={handleRefresh}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
                 <svg
                   className="h-4 w-4"
                   fill="none"
@@ -309,7 +366,10 @@ const EmployeesList: React.FC = () => {
         // Table with data
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
-            <EmployeesListTable tableDetails={employeesList} />
+            <EmployeeListTable
+              tableDetails={manageEmployees}
+              onRefresh={fetchEmployees}
+            />
           </div>
         </div>
       )}
@@ -317,4 +377,4 @@ const EmployeesList: React.FC = () => {
   );
 };
 
-export default EmployeesList;
+export default ManageEmployee;

@@ -114,19 +114,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if role title already exists
-    const existingRoleTitle = await RoleTitle.findOne({
-      roleName: roleName.trim(),
-    });
-    if (existingRoleTitle) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Role title with this name already exists",
-        },
-        { status: 409 }
-      );
-    }
+    // REMOVED: Duplicate role name check - allows same role name for multiple users
 
     // Capitalize status if provided
     const normalizedStatus = status

@@ -5,6 +5,7 @@ import Department from "@/lib/mongodb/models/Department";
 import mongoose from "mongoose";
 import { authenticate, hasRole } from "@/lib/middleware/auth";
 import { RoleTitle } from "@/lib/mongodb/models";
+
 // GET: Fetch single role title by ID
 export async function GET(
   request: NextRequest,
@@ -115,22 +116,7 @@ export async function PUT(
       );
     }
 
-    // Check if role title name already exists (excluding current role)
-    if (roleName) {
-      const existingRoleTitle = await RoleTitle.findOne({
-        roleName: roleName.trim(),
-        _id: { $ne: id },
-      });
-      if (existingRoleTitle) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "Role title with this name already exists",
-          },
-          { status: 409 }
-        );
-      }
-    }
+    // REMOVED: Duplicate role name check - allows same role name for multiple users
 
     const updateData: any = {};
     if (roleName !== undefined) updateData.roleName = roleName.trim();

@@ -32,27 +32,36 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
   try {
     // Get token from Authorization header
     const authHeader = req.headers.get("Authorization");
-
     console.log("=== AUTH MIDDLEWARE DEBUG ===");
-    console.log("Auth header:", authHeader?.substring(0, 30) + "...");
+    console.log("Full auth header:", authHeader);
 
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      console.log("No Bearer token found");
+    if (!authHeader) {
+      console.log("No Authorization header found");
       return {
-        error: "Authorization header missing or invalid",
+        error: "Authorization header missing",
         status: 401,
       };
     }
 
-    const token = authHeader.substring(7); // Remove "Bearer " prefix
+    // Handle both "Bearer token" and raw token formats
+    let token: string;
+    if (authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7); // Remove "Bearer " prefix
+      console.log("Token extracted with Bearer prefix");
+    } else {
+      token = authHeader; // Use raw token
+      console.log("Token extracted without Bearer prefix");
+    }
 
-    if (!token) {
-      console.log("Token is empty after removing Bearer prefix");
+    if (!token || token.trim() === "") {
+      console.log("Token is empty after extraction");
       return {
         error: "Token is required",
         status: 401,
       };
     }
+
+    console.log("Token (first 30 chars):", token.substring(0, 30) + "...");
 
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET is not defined");
@@ -111,7 +120,7 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
       ? [user.role as unknown as string]
       : ["EMPLOYEE"];
 
-    console.log("User found:", {
+    console.log("User authenticated successfully:", {
       id: decoded.id,
       email: user.email,
       roles: userRoles,
