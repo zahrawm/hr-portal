@@ -43,7 +43,7 @@ const userSchema = new Schema<IUser>(
     },
     role: {
       type: [String],
-      default: [UserRole.ADMIN],
+      default: [UserRole.EMPLOYEE],
       enum: Object.values(UserRole),
     },
     jobTitle: {

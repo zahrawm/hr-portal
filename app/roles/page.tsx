@@ -222,7 +222,7 @@ const RolesManagement: React.FC = () => {
             onClick={() => setShowSuccessNotification(false)}
             className="ml-2 rounded-full p-1 hover:bg-green-600 flex-shrink-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 brightness-0 invert" />
           </button>
         </div>
       )}
@@ -231,7 +231,11 @@ const RolesManagement: React.FC = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-            <img src="../img/square.svg" alt="Role Icon" className="h-6 w-6" />
+            <img
+              src="../img/square.svg"
+              alt="Role Icon"
+              className="h-6 w-6 brightness-0 invert"
+            />
           </div>
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -249,7 +253,7 @@ const RolesManagement: React.FC = () => {
           <img
             src="../img/leftf.svg"
             alt="Department Icon"
-            className="h-4 w-4"
+            className="h-4 w-4 brightness-0 invert"
           />
           Export CSV
         </button>
@@ -264,7 +268,7 @@ const RolesManagement: React.FC = () => {
               <img
                 src="../img/square.svg"
                 alt="Roles Icon"
-                className="h-8 w-8"
+                className="h-8 w-8 brightness-0 invert"
               />
             </div>
 

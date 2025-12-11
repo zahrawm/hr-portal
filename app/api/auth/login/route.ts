@@ -88,12 +88,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create JWT Access Token
+    // Create JWT Access Token with 'roles' (plural) to match middleware
     const token = jwt.sign(
       {
         id: user._id.toString(),
         email: user.email,
-        role: user.role, // Changed from 'roles' to 'role' for consistency
+        roles: user.role, // Changed to 'roles' to match middleware expectation
         type: "access",
       },
       process.env.JWT_SECRET,
@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role, // Changed from 'roles' to 'role' for consistency
+          role: user.role, // Keep as 'role' for localStorage
         },
       },
       { status: 200 }

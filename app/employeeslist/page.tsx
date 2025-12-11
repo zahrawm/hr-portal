@@ -196,7 +196,7 @@ const ManageEmployee: React.FC = () => {
             <img
               src="../img/loader.svg"
               alt="Loading"
-              className="h-8 w-8 animate-spin"
+              className="h-8 w-8 animate-spin brightness-0 invert"
             />
             <span className="text-gray-600 dark:text-gray-400">
               Loading employees...
@@ -272,7 +272,7 @@ const ManageEmployee: React.FC = () => {
             <img
               src="../img/group.svg"
               alt="Manage Employee Icon"
-              className="h-6 w-6"
+              className="h-6 w-6 brightness-0 invert"
             />
           </div>
           <div>
@@ -291,7 +291,7 @@ const ManageEmployee: React.FC = () => {
           <img
             src="../img/leftf.svg"
             alt="Department Icon"
-            className="h-4 w-4"
+            className="h-4 w-4 brightness-0 invert"
           />
           Export CSV
         </button>
@@ -306,7 +306,7 @@ const ManageEmployee: React.FC = () => {
               <img
                 src="../img/department.svg"
                 alt="Department Icon"
-                className="h-8 w-8"
+                className="h-8 w-8 brightness-0 invert"
               />
             </div>
 

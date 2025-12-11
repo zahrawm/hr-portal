@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 import { ChevronDown, ChevronUp, LogOutIcon, Menu, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import chart from "../../../../public/img/chart.svg";
 import home from "../../../../public/img/home.svg";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import wallet from "../../../../public/img/wallet2.svg";
 type NavLink = {
   href: string;
   label: string;
+  roles: string[];
   icon:
     | string
     | React.ComponentType<{ size?: number | string; className?: string }>;
@@ -42,6 +43,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/department.svg",
       isImage: true,
       activeKey: "department",
+      roles: ["ADMIN", "MANAGER"],
     },
     {
       href: "/roles",
@@ -49,6 +51,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/square.svg",
       isImage: true,
       activeKey: "roles",
+      roles: ["ADMIN", "MANAGER"],
     },
     {
       href: "/manageEmployees",
@@ -56,6 +59,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/group.svg",
       isImage: true,
       activeKey: "manage employees",
+      roles: ["ADMIN", "MANAGER"],
     },
     {
       href: "/employeeslist",
@@ -63,6 +67,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/circle.svg",
       isImage: true,
       activeKey: "employees list",
+      roles: ["ADMIN", "MANAGER"],
     },
 
     {
@@ -71,6 +76,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/user.svg",
       isImage: true,
       activeKey: "employees profile",
+      roles: ["ADMIN", "MANAGER"],
     },
     {
       href: "/leaveRequests",
@@ -78,6 +84,15 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/leave.svg",
       isImage: true,
       activeKey: "leave requests",
+      roles: ["EMPLOYEE", "ADMIN", "MANAGER"],
+    },
+    {
+      href: "/adminLeaveRequest",
+      label: "Leave Requests",
+      icon: "../img/leave.svg",
+      isImage: true,
+      activeKey: "admin leave requests", // Changed this line
+      roles: ["ADMIN", "MANAGER"],
     },
     {
       href: "/attendance",
@@ -85,6 +100,15 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       icon: "../img/plus.svg",
       isImage: true,
       activeKey: "attendance",
+      roles: ["ADMIN", "MANAGER"],
+    },
+    {
+      href: "/employeeAttendance",
+      label: "Attendance",
+      icon: "../img/plus.svg",
+      isImage: true,
+      activeKey: "employee attendance",
+      roles: ["EMPLOYEE", "ADMIN", "MANAGER"],
     },
   ];
 
@@ -94,16 +118,38 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
     if (pathname?.includes("/employeeslist")) return "employees list";
     if (pathname?.includes("/manageEmployees")) return "manage employees";
     if (pathname?.includes("/employeesProfile")) return "employees profile";
+    if (pathname?.includes("/adminLeaveRequest")) return "admin leave requests";
     if (pathname?.includes("/leaveRequests")) return "leave requests";
     if (pathname?.includes("/attendance")) return "attendance";
+    if (pathname?.includes("/employeeAttendance")) return "employee attendance";
     return "";
   }, [pathname]);
+
+  const [employee, setEmployee] = useState<any>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false); // prevents early return
+
+  // ---- Load user from localStorage safely ----
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+      setEmployee(storedUser);
+      setUserRoles(storedUser?.role || []); // Adjust based on how roles are stored
+      setIsLoaded(true);
+    }
+  }, []);
+  const filteredLinks = useMemo(() => {
+    return navLinks.filter((link) =>
+      link.roles.some((role) => userRoles.includes(role))
+    );
+  }, [userRoles]);
 
   return (
     <>
       {/* ........Sidebar toggle..........*/}
       <button
-        className="fixed z-50 cursor-pointer transition-all duration-300 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+        className="fixed z-50 cursor-pointer transition-all duration-300 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-[#1BBC78] dark:hover:bg-gray-700"
         style={{
           left: isOpen ? "234px" : "50px",
           top: isOpen ? "60px" : "60px",
@@ -143,7 +189,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
               isOpen ? "px-4" : "px-2 pt-4"
             )}
           >
-            {navLinks.map((link) => {
+            {filteredLinks.map((link) => {
               const IconComp = typeof link.icon === "string" ? null : link.icon;
               const isActive = activeTab === link.activeKey;
 
@@ -162,7 +208,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                 >
                   <div
                     className={cn(
-                      "flex flex-shrink-0 items-center justify-center",
+                      "flex flex-shrink-0 items-center justify-center brightness-0 invert",
                       isOpen ? "h-5 w-5" : "h-6 w-6"
                     )}
                   >
@@ -202,7 +248,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                     />
                     <div className="text-left">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Kofi Ampraku
+                        {employee?.name}
                       </div>
                       <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         Admin

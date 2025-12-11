@@ -299,7 +299,7 @@ export default function UserTable({
               >
                 <img
                   src="../img/edit.svg"
-                  className="h-4 w-4 text-green-50 dark:text-green-50"
+                  className="h-4 w-4 text-green-50 dark:text-green-50 brightness-0 invert"
                 />
                 Edit
               </button>
@@ -314,7 +314,7 @@ export default function UserTable({
               >
                 <img
                   src="../img/bin.svg"
-                  className="h-4 w-4 text-red-500 dark:text-red-500"
+                  className="h-4 w-4 text-red-500 dark:text-red-500 brightness-0 invert"
                 />
                 Delete
               </button>
@@ -471,7 +471,7 @@ export default function UserTable({
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
                 src="../img/department.svg"
-                className="h-8 w-8 text-green-50 dark:text-green-50"
+                className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert "
               />
             </div>
 

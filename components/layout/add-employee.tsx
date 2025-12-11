@@ -57,7 +57,7 @@ const AddEmployeeForm = ({ onSuccess }: AddEmployeeFormProps) => {
     "Engineering",
     "Design",
     "Human Resources",
-    "Customer Success",
+    "Customer Service",
     "Marketing",
   ];
 

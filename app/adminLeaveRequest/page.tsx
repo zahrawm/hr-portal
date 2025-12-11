@@ -12,7 +12,7 @@ import UserTable from "@/components/ui/table";
 
 import ManageEmployeeTable from "@/components/ui/manage-employee-table";
 import AddEmployeeForm from "@/components/layout/add-employee";
-import EmployeeProfileTable from "@/components/ui/empoyee-profile-table";
+
 import LeaveRequesTable from "@/components/ui/admin-leave-request-table";
 
 type ConflictType = adminLeaveRequest | null;
@@ -218,7 +218,7 @@ const adminLeaveRequest: React.FC = () => {
             onClick={() => setShowSuccessNotification(false)}
             className="ml-2 rounded-full p-1 hover:bg-green-600 flex-shrink-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 brightness-0 invert" />
           </button>
         </div>
       )}
@@ -230,7 +230,7 @@ const adminLeaveRequest: React.FC = () => {
             <img
               src="../img/user.svg"
               alt="Employee Profile Icon"
-              className="h-6 w-6"
+              className="h-6 w-6 brightness-0 invert"
             />
           </div>
           <div>
@@ -249,7 +249,7 @@ const adminLeaveRequest: React.FC = () => {
           <img
             src="../img/leftf.svg"
             alt="Department Icon"
-            className="h-4 w-4"
+            className="h-4 w-4 brightness-0 invert"
           />
           Export CSV
         </button>
@@ -264,7 +264,7 @@ const adminLeaveRequest: React.FC = () => {
               <img
                 src="../img/department.svg"
                 alt="Department Icon"
-                className="h-8 w-8"
+                className="h-8 w-8 brightness-0 invert"
               />
             </div>
 

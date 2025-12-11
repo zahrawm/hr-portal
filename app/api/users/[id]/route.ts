@@ -45,7 +45,6 @@ export async function GET(req: NextRequest) {
       // Fetch all users
       const users = await User.find().select("-password");
       return NextResponse.json({ success: true, users }, { status: 200 });
-      
     }
   } catch (error) {
     console.error("Get Users Error:", error);
@@ -69,9 +68,9 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
+    if (!hasRole(authResult.user.roles, ["ADMIN", "MANAGER"])) {
       return NextResponse.json(
-        { success: false, message: "Forbidden: Admins only" },
+        { success: false, message: "Forbidden: Admin/Manager only" },
         { status: 403 }
       );
     }

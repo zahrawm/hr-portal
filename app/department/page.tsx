@@ -243,7 +243,7 @@ const DepartmentManagement: React.FC = () => {
             <img
               src="../img/department.svg"
               alt="Department Icon"
-              className="h-6 w-6"
+              className="h-6 w-6 brightness-0 invert"
             />
           </div>
           <div>
@@ -261,8 +261,8 @@ const DepartmentManagement: React.FC = () => {
         >
           <img
             src="../img/leftf.svg"
-            alt="Department Icon"
-            className="h-4 w-4"
+            alt="Department Icon "
+            className="h-4 w-4 brightness-0 invert"
           />
           Export CSV
         </button>

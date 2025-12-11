@@ -329,7 +329,9 @@ export default function EmployeeAttendanceTable({
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 dark:bg-gray-800 hover:bg-green-50">
                 <img
                   src="../img/plus.svg"
-                  className="h-8 w-8 text-green-50 dark:text-green-50"
+                  className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert
+                  
+                  "
                 />
               </div>
 

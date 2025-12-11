@@ -19,9 +19,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
+    if (!hasRole(authResult.user.roles, ["ADMIN", "MANAGER"])) {
       return NextResponse.json(
-        { success: false, message: "Forbidden: Admins only" },
+        { success: false, message: "Forbidden: Admin/Manager only" },
         { status: 403 }
       );
     }
@@ -171,9 +171,9 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
+    if (!hasRole(authResult.user.roles, ["ADMIN", "MANAGER"])) {
       return NextResponse.json(
-        { success: false, message: "Forbidden: Admins only" },
+        { success: false, message: "Forbidden: Admin/Manager only" },
         { status: 403 }
       );
     }
@@ -251,9 +251,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
+    if (!hasRole(authResult.user.roles, ["ADMIN", "MANAGER"])) {
       return NextResponse.json(
-        { success: false, message: "Forbidden: Admins only" },
+        { success: false, message: "Forbidden: Admin/Manager only" },
         { status: 403 }
       );
     }

@@ -172,7 +172,7 @@ const EmployeeAttendace: React.FC = () => {
             <img
               src="../img/plus.svg"
               alt="Attendance Icon"
-              className="h-6 w-6"
+              className="h-6 w-6 brightness-0 invert"
             />
           </div>
           <div>
@@ -191,7 +191,7 @@ const EmployeeAttendace: React.FC = () => {
           <img
             src="../img/leftf.svg"
             alt="Department Icon"
-            className="h-4 w-4"
+            className="h-4 w-4 brightness-0 invert"
           />
           Export CSV
         </button>
@@ -206,7 +206,7 @@ const EmployeeAttendace: React.FC = () => {
               <img
                 src="../img/plus.svg"
                 alt="Department Icon"
-                className="h-8 w-8"
+                className="h-8 w-8 brightness-0 invert"
               />
             </div>
 

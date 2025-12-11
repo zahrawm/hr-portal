@@ -130,7 +130,7 @@ const LeaveRequestContent: React.FC = () => {
                 <img
                   src="../img/leave.svg"
                   alt="Department Icon"
-                  className="h-8 w-8"
+                  className="h-8 w-8 brightness-0 invert"
                 />
               </div>
             </div>

@@ -2,8 +2,37 @@
 
 import { Bell, Settings } from "lucide-react";
 import { ModeToggle } from "../theme/ThemeSwitcher";
+import { useEffect, useState } from "react";
 
 export default function Navbar() {
+  const [employee, setEmployee] = useState<any>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [greeting, setGreeting] = useState("Good morning"); // Add this line
+
+  // ---- Load user from localStorage safely ----
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
+      setEmployee(storedUser);
+      setUserRoles(storedUser?.role || []);
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // ---- Set greeting based on time ----
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      setGreeting("Good morning");
+    } else if (hour < 18) {
+      setGreeting("Good afternoon");
+    } else {
+      setGreeting("Good evening");
+    }
+  }, []);
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
       <div className="px-4 sm:px-6 lg:px-8">
@@ -23,7 +52,7 @@ export default function Navbar() {
           {/* Center Section - Greeting */}
           <div className="flex-1 flex justify-start ml-40">
             <div className="text-base font-bold text-[#001F37] dark:text-gray-400 ">
-              Good morning kofi
+              {greeting} {employee?.name}
             </div>
           </div>
 
