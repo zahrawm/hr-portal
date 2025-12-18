@@ -7,19 +7,20 @@ import connectDB from "@/lib/mongodb/connection";
 // GET - Fetch a single leave request by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid ID format" },
         { status: 400 }
       );
     }
 
-    const leaveRequest = await LeaveRequest.findById(params.id)
+    const leaveRequest = await LeaveRequest.findById(id)
       .populate("employeeId", "name email department jobTitle")
       .populate("approverId", "name email");
 
@@ -42,12 +43,13 @@ export async function GET(
 // PATCH - Update a leave request
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid ID format" },
         { status: 400 }
@@ -65,11 +67,10 @@ export async function PATCH(
     if (body.approverId) updates.approverId = body.approverId;
     if (body.denialReason) updates.denialReason = body.denialReason;
 
-    const leaveRequest = await LeaveRequest.findByIdAndUpdate(
-      params.id,
-      updates,
-      { new: true, runValidators: true }
-    )
+    const leaveRequest = await LeaveRequest.findByIdAndUpdate(id, updates, {
+      new: true,
+      runValidators: true,
+    })
       .populate("employeeId", "name email department jobTitle")
       .populate("approverId", "name email");
 
@@ -92,19 +93,20 @@ export async function PATCH(
 // DELETE - Delete a leave request
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await connectDB();
+    const { id } = await params;
 
-    if (!mongoose.Types.ObjectId.isValid(params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return NextResponse.json(
         { success: false, error: "Invalid ID format" },
         { status: 400 }
       );
     }
 
-    const leaveRequest = await LeaveRequest.findByIdAndDelete(params.id);
+    const leaveRequest = await LeaveRequest.findByIdAndDelete(id);
 
     if (!leaveRequest) {
       return NextResponse.json(
