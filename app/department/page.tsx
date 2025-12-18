@@ -75,7 +75,6 @@ const DepartmentManagement: React.FC = () => {
       const result = await response.json();
 
       if (!result.success || !result.data || result.data.length === 0) {
-        alert("No departments to export");
         return;
       }
 
@@ -138,7 +137,6 @@ const DepartmentManagement: React.FC = () => {
       document.body.removeChild(link);
     } catch (error) {
       console.error("Error exporting CSV:", error);
-      alert("Failed to export CSV");
     }
   };
   const users: User[] = [

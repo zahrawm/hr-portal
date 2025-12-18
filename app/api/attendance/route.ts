@@ -1,110 +1,13 @@
-// src/app/api/attendance/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import Attendance from "@/lib/mongodb/models/Attendance";
-import { authenticate } from "@/lib/middleware/auth";
 import connectDB from "@/lib/mongodb/connection";
+import Attendance from "@/lib/mongodb/models/Attendance";
+import User from "@/lib/mongodb/models/Users";
+import { authenticate, hasRole } from "@/lib/middleware/auth";
+import mongoose from "mongoose";
 
-// GET - Fetch all attendance records
-export async function GET(req: NextRequest) {
-  try {
-    // Authenticate user
-    const authResult = await authenticate(req);
-    if (authResult.error || !authResult.user) {
-      return NextResponse.json(
-        { success: false, message: authResult.error || "Unauthorized" },
-        { status: authResult.status }
-      );
-    }
-
-    await connectDB();
-
-    const searchParams = req.nextUrl.searchParams;
-    const userId = searchParams.get("userId");
-    const date = searchParams.get("date");
-    const limit = parseInt(searchParams.get("limit") || "100");
-    const page = parseInt(searchParams.get("page") || "1");
-
-    const query: any = {};
-
-    console.log("Fetching attendance with query:", query);
-    console.log("User roles:", authResult.user.roles);
-    console.log("User ID:", authResult.user.id);
-
-    // CRITICAL FIX: Check if user is admin or manager
-    const userRoles = authResult.user.roles.map((r: string) => r.toLowerCase());
-    const isAdminOrManager =
-      userRoles.includes("admin") || userRoles.includes("manager");
-
-    console.log("Is Admin or Manager:", isAdminOrManager);
-
-    // SECURITY FIX: If NOT admin/manager, ALWAYS show only their OWN records
-    // Do NOT allow userId parameter to override this for non-admin users
-    if (!isAdminOrManager) {
-      query.userId = authResult.user.id;
-      console.log(
-        "Employee role detected - forcing userId filter:",
-        authResult.user.id
-      );
-    } else {
-      // Only admins/managers can filter by different userId
-      if (userId) {
-        query.userId = userId;
-        console.log("Admin/Manager filtering by userId:", userId);
-      } else {
-        console.log("Admin/Manager role detected - showing all records");
-      }
-    }
-
-    // Apply date filter if provided
-    if (date) {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      query.clockIn = { $gte: startOfDay, $lte: endOfDay };
-    }
-
-    const skip = (page - 1) * limit;
-
-    console.log("Final query being used:", query);
-
-    // Get total count
-    const total = await Attendance.countDocuments(query);
-    console.log("Total attendance records found:", total);
-
-    // Fetch attendance records with user population
-    const attendanceRecords = await Attendance.find(query)
-      .populate("userId", "name email employeeId department jobTitle")
-      .sort({ clockIn: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    console.log("Attendance records fetched:", attendanceRecords.length);
-    if (attendanceRecords.length > 0) {
-      console.log("First record sample:", attendanceRecords[0]);
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: attendanceRecords,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error: any) {
-    console.error("Error in GET /attendance:", error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
-  }
-}
-
-// POST - Create/Clock In attendance record
+// -------------------------
+// POST: Clock In/Out
+// -------------------------
 export async function POST(req: NextRequest) {
   try {
     const authResult = await authenticate(req);
@@ -115,59 +18,203 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const body = await req.json();
+    const { action } = body;
+
+    const targetUserId = authResult.user.id;
+
     await connectDB();
 
-    const body = await req.json();
-    const { clockIn, clockOut } = body;
-
-    // Check if user already has an active attendance record today
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const existingRecord = await Attendance.findOne({
-      userId: authResult.user.id,
-      clockIn: { $gte: today, $lt: tomorrow },
-    });
-
-    if (existingRecord && !clockOut) {
+    // Verify user exists
+    const user = await User.findById(targetUserId);
+    if (!user) {
       return NextResponse.json(
-        { success: false, error: "Already clocked in today" },
-        { status: 400 }
+        { success: false, message: "User not found" },
+        { status: 404 }
       );
     }
 
-    const attendanceData: any = {
-      userId: authResult.user.id,
-      clockIn: clockIn ? new Date(clockIn) : new Date(),
-    };
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    if (clockOut) {
-      attendanceData.clockOut = new Date(clockOut);
+    if (action === "clockIn") {
+      // Check if already clocked in today
+      const existingAttendance = await Attendance.findOne({
+        userId: targetUserId,
+        date: today,
+      });
+
+      if (existingAttendance) {
+        // Check if they already clocked out
+        if (existingAttendance.clockOut) {
+          return NextResponse.json(
+            {
+              success: false,
+              message:
+                "You already completed your attendance for today. You clocked in and out.",
+            },
+            { status: 400 }
+          );
+        } else {
+          // They clocked in but haven't clocked out yet
+          return NextResponse.json(
+            {
+              success: false,
+              message: "Already clocked in today. Please clock out first.",
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Create new attendance record
+      const newAttendance = await Attendance.create({
+        userId: targetUserId,
+        date: today,
+        clockIn: new Date(),
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Clocked in successfully",
+          attendance: newAttendance,
+        },
+        { status: 201 }
+      );
+    } else if (action === "clockOut") {
+      // Find today's attendance record
+      const attendance = await Attendance.findOne({
+        userId: targetUserId,
+        date: today,
+      });
+
+      if (!attendance) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "No clock-in found for today. Please clock in first.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Check if already clocked out
+      if (attendance.clockOut) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Already clocked out today.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Update with clock out time
+      attendance.clockOut = new Date();
+      await attendance.save(); // This will trigger the pre-save hook to calculate hours
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Clocked out successfully",
+          attendance,
+        },
+        { status: 200 }
+      );
+    } else {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid action. Use 'clockIn' or 'clockOut'",
+        },
+        { status: 400 }
+      );
+    }
+  } catch (error) {
+    console.error("Attendance Action Error:", error);
+    return NextResponse.json(
+      { success: false, message: "Failed to process attendance" },
+      { status: 500 }
+    );
+  }
+}
+
+// -------------------------
+// GET: Get attendance records
+// -------------------------
+export async function GET(req: NextRequest) {
+  try {
+    const authResult = await authenticate(req);
+    if (authResult.error || !authResult.user) {
+      return NextResponse.json(
+        { success: false, message: authResult.error || "Unauthorized" },
+        { status: authResult.status }
+      );
     }
 
-    const attendance = await Attendance.create(attendanceData);
-    await attendance.populate(
-      "employeeId",
-      "name email employeeId department jobTitle"
-    );
+    await connectDB();
+
+    const url = new URL(req.url);
+    const userId = url.searchParams.get("id");
+    const startDate = url.searchParams.get("startDate");
+    const endDate = url.searchParams.get("endDate");
+
+    // Build base query
+    const query: any = {};
+
+    // If userId is provided, use it; otherwise use authenticated user's ID
+    if (userId) {
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return NextResponse.json(
+          { success: false, message: "Invalid user ID format" },
+          { status: 400 }
+        );
+      }
+
+      // Check if user exists
+      const userExists = await User.findById(userId);
+      if (!userExists) {
+        return NextResponse.json(
+          { success: false, message: "User not found" },
+          { status: 404 }
+        );
+      }
+
+      query.userId = userId;
+    } else {
+      // Default to authenticated user's records
+      query.userId = authResult.user.id;
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) {
+        query.date.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.date.$lte = new Date(endDate);
+      }
+    }
+
+    const attendanceRecords = await Attendance.find(query)
+      .populate("userId", "name email jobTitle department")
+      .sort({ date: -1, clockIn: -1 });
 
     return NextResponse.json(
       {
         success: true,
-        data: attendance,
-        message: "Attendance recorded successfully",
+        data: attendanceRecords,
+        count: attendanceRecords.length,
       },
-      { status: 201 }
+      { status: 200 }
     );
-  } catch (error: any) {
-    console.error("Attendance creation error:", error);
+  } catch (error) {
+    console.error("Get Attendance Error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to record attendance",
-      },
+      { success: false, message: "Failed to fetch attendance records" },
       { status: 500 }
     );
   }
