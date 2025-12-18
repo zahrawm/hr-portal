@@ -79,14 +79,30 @@ export default function LoginForm() {
       );
 
       console.log(response.data);
-
       if (response.data.success) {
         // Store token in localStorage
         localStorage.setItem("token", response.data.token);
         localStorage.setItem("user", JSON.stringify(response.data.user));
 
-        // Navigate to department page
-        router.push("/department");
+        // FIXED: Store user ID separately for filtering attendance
+        localStorage.setItem(
+          "userId",
+          response.data.user._id || response.data.user.id
+        );
+
+        // Navigate based on user role
+        const userRole = response.data.user?.role;
+        const role = Array.isArray(userRole) ? userRole[0] : userRole;
+
+        if (role === "EMPLOYEE" || role === "employee") {
+          router.push("/leaveRequests");
+        } else if (role === "MANAGER" || role === "manager") {
+          router.push("/department");
+        } else if (role === "ADMIN" || role === "admin") {
+          router.push("/department");
+        } else {
+          router.push("/leaveRequests"); // Default fallback
+        }
       }
     } catch (error: any) {
       console.log(error);

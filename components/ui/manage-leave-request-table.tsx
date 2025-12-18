@@ -34,7 +34,9 @@ type tableData = {
   department: string;
   status: string;
   role: string;
-  actions: string;
+  aprove?: string;
+  deny?: string;
+  view: string;
 };
 
 interface TableProps {
@@ -42,7 +44,7 @@ interface TableProps {
   onRefresh?: () => void;
 }
 
-export default function ManageEmployeeTable({
+export default function ManageLeaveRequestTable({
   tableDetails,
   onRefresh,
 }: TableProps) {
@@ -53,8 +55,8 @@ export default function ManageEmployeeTable({
 
   const router = useRouter();
 
-  const handleNavigate = () => {
-    router.push("/addEmployee");
+  const handleProfile = () => {
+    router.push("/profileContent"); // Navigate to /dashboard
   };
 
   const handleEdit = (employee: tableData) => {
@@ -64,13 +66,14 @@ export default function ManageEmployeeTable({
     router.push("/editEmployee");
   };
 
-  const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showDenyModal, setShowDenyModal] = useState(false);
   const [showResetPinModal, setShowResetPinModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<any>(null);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [newDepartmentName, setNewDepartmentName] = useState("");
   const [newDepartmentDescription, setNewDepartmentDescription] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -78,16 +81,19 @@ export default function ManageEmployeeTable({
   const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
   const [showEditManageEmployeeModal, setshowEditMangeEmployeeModal] =
     useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const closeModal = () => {
     setshowEditMangeEmployeeModal(false);
     setshowMangeEmployeeModal(false);
-    setShowViewModal(false);
+
     setShowEditModal(false);
     setShowDeleteModal(false);
     setShowResetPinModal(false);
     setSelectedConflict(null);
     setShowApproveModal(false);
+    setShowDenyModal(false);
+    setSelectedRequest(null);
   };
 
   const handleResetPin = () => {
@@ -96,12 +102,105 @@ export default function ManageEmployeeTable({
   };
 
   const handleUserAddSuccess = () => {
-    setShowViewModal(false);
     setshowEditMangeEmployeeModal(false);
     setToastMessage("Employees Successfully Created");
     setShowToast(true);
     if (onRefresh) {
       onRefresh();
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!selectedRequest?._id) return;
+
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/leave-requests/approve", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ id: selectedRequest._id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success || response.ok) {
+        setToastMessage("Leave request approved successfully");
+        setShowToast(true);
+        closeModal();
+
+        if (onRefresh) {
+          setTimeout(() => {
+            onRefresh();
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      } else {
+        setToastMessage(
+          `Error: ${result.error || "Failed to approve leave request"}`
+        );
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error("Error approving leave request:", error);
+      setToastMessage("Error approving leave request");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDeny = async () => {
+    if (!selectedRequest?._id) return;
+
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem("token");
+
+      const response = await fetch("/api/leave-requests/deny", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify({ id: selectedRequest._id }),
+      });
+
+      const result = await response.json();
+
+      if (result.success || response.ok) {
+        setToastMessage("Leave request denied successfully");
+        setShowToast(true);
+        closeModal();
+
+        if (onRefresh) {
+          setTimeout(() => {
+            onRefresh();
+          }, 1500);
+        } else {
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      } else {
+        setToastMessage(
+          `Error: ${result.error || "Failed to deny leave request"}`
+        );
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error("Error denying leave request:", error);
+      setToastMessage("Error denying leave request");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -124,7 +223,7 @@ export default function ManageEmployeeTable({
 
       if (result.success || response.ok) {
         setToastMessage("Employee deleted successfully");
-        setShowToast(true);
+
         closeModal();
 
         if (onRefresh) {
@@ -238,87 +337,63 @@ export default function ManageEmployeeTable({
       ),
       size: 300,
     }),
-    columnHelper.accessor("status", {
-      cell: (info) => (
-        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md">
-          <span
-            className={`h-2 w-2 rounded-full ${
-              info.getValue() === "Active"
-                ? "bg-green-500"
-                : "bg-gray-300 dark:bg-gray-600"
-            }`}
-          ></span>
-          <span
-            className={`text-sm font-medium ${
-              info.getValue() === "Active"
-                ? "text-gray-900 dark:text-gray-100"
-                : "text-gray-400 dark:text-gray-500"
-            }`}
-          >
-            {info.getValue()}
-          </span>
-        </button>
-      ),
+    columnHelper.accessor("aprove", {
+      cell: (info) => {
+        const row = info.row.original;
+        const isPending = row.status === "PENDING";
+
+        return (
+          <div className="flex items-center justify-start">
+            <button
+              onClick={() => {
+                setSelectedRequest(row);
+                setShowApproveModal(true);
+              }}
+              disabled={!isPending}
+              className={`flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                !isPending ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              Approve
+            </button>
+          </div>
+        );
+      },
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Status
+          Approve
         </span>
       ),
       size: 120,
     }),
-    columnHelper.accessor("actions", {
-      cell: (info) => (
-        <div className="relative flex items-center justify-start">
-          <button
-            onClick={() =>
-              setOpenDropdownIndex(
-                openDropdownIndex === info.row.index ? null : info.row.index
-              )
-            }
-            className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <Ellipsis className="h-5 w-5" />
-          </button>
-          {openDropdownIndex === info.row.index && (
-            <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-              <button
-                onClick={() => {
-                  handleEdit(info.row.original);
-                  setOpenDropdownIndex(null);
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <img
-                  src="../img/edit.svg"
-                  className="h-4 w-4 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert"
-                />
-                Edit
-              </button>
+    columnHelper.accessor("deny", {
+      cell: (info) => {
+        const row = info.row.original;
+        const isPending = row.status === "PENDING";
 
-              <button
-                onClick={() => {
-                  setShowDeleteModal(true);
-                  setSelectedConflict(info.row.original);
-                  setOpenDropdownIndex(null);
-                }}
-                className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-              >
-                <img
-                  src="../img/bin.svg"
-                  className="h-4 w-4 text-red-500 dark:text-red-500 brightness-0 invert"
-                />
-                Delete
-              </button>
-            </div>
-          )}
-        </div>
-      ),
+        return (
+          <div className="flex items-center justify-start">
+            <button
+              onClick={() => {
+                setSelectedRequest(row);
+                setShowDenyModal(true);
+              }}
+              disabled={!isPending}
+              className={`flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                !isPending ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              Deny
+            </button>
+          </div>
+        );
+      },
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Actions
+          Deny
         </span>
       ),
-      size: 80,
+      size: 120,
     }),
   ];
 
@@ -414,11 +489,11 @@ export default function ManageEmployeeTable({
             </button>
           </div>
 
-          <button
+          {/* <button
             onClick={() => {
               handleNavigate();
             }}
-            className="w-full sm:w-[180px] sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
+            className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
           >
             <svg
               className="h-4 w-4"
@@ -431,7 +506,7 @@ export default function ManageEmployeeTable({
               <path d="M12 9v6M9 12h6" strokeLinecap="round" />
             </svg>
             Add Employee
-          </button>
+          </button> */}
         </div>
 
         {filteredData.length === 0 && tableDetails.length > 0 && (
@@ -454,7 +529,7 @@ export default function ManageEmployeeTable({
             </p>
 
             <div className="flex items-center gap-3">
-              <button
+              {/* <button
                 onClick={() => {
                   handleNavigate();
                 }}
@@ -471,7 +546,7 @@ export default function ManageEmployeeTable({
                   <path d="M12 9v6M9 12h6" strokeLinecap="round" />
                 </svg>
                 Add Employee
-              </button>
+              </button> */}
 
               <button
                 onClick={() => {
@@ -573,8 +648,8 @@ export default function ManageEmployeeTable({
           </div>
         )}
       </div>
-
-      {showDeleteModal && (
+      {/* Approve Modal */}
+      {showApproveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black opacity-50"
@@ -582,25 +657,63 @@ export default function ManageEmployeeTable({
           ></div>
           <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Delete this?
+              Approve Leave Request?
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to delete this employee?
+              Are you sure you want to approve this leave request for{" "}
+              {selectedRequest?.name}?
             </p>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={closeModal}
+                disabled={isProcessing}
                 className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
               <button
-                onClick={handleDelete}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                onClick={handleApprove}
+                disabled={isProcessing}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 disabled:opacity-50"
               >
-                <Trash size={14} color="#FFF" />
-                Delete
+                {isProcessing ? "Processing..." : "Approve"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Deny Modal */}
+      {showDenyModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black opacity-50"
+            onClick={closeModal}
+          ></div>
+          <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Deny Leave Request?
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              Are you sure you want to deny this leave request for{" "}
+              {selectedRequest?.name}?
+            </p>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3">
+              <button
+                onClick={closeModal}
+                disabled={isProcessing}
+                className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeny}
+                disabled={isProcessing}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
+              >
+                {isProcessing ? "Processing..." : "Deny"}
               </button>
             </div>
           </div>

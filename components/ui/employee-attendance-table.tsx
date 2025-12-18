@@ -19,6 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import axios from "axios";
 
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";
@@ -28,18 +29,18 @@ import EditEmployeeForm from "../layout/edit-employee";
 import { useRouter } from "next/navigation";
 
 type tableData = {
+  _id: string;
   timestamp: string;
   timeIn: string;
   timeOut: string;
+  duration: string;
 };
 
 interface TableProps {
-  tableDetails: tableData[];
+  userId?: string;
 }
 
-export default function EmployeeAttendanceTable({
-  tableDetails = [],
-}: TableProps) {
+export default function EmployeeAttendanceTable({ userId }: TableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
     null
@@ -62,6 +63,9 @@ export default function EmployeeAttendanceTable({
   const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
   const [showEditManageEmployeeModal, setshowEditMangeEmployeeModal] =
     useState(false);
+
+  const [tableDetails, setTableDetails] = useState<tableData[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const closeModal = () => {
     setshowEditMangeEmployeeModal(false);
@@ -113,6 +117,219 @@ export default function EmployeeAttendanceTable({
   const [filterBy, setFilterBy] = useState<"all" | "timestamp">("all");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+    return {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+  };
+
+  // Calculate duration between clock in and clock out
+  // Replace your calculateDuration function with this fixed version:
+
+  const calculateDuration = (clockIn: string, clockOut: string): string => {
+    if (!clockIn || clockIn === "N/A" || !clockOut || clockOut === "N/A") {
+      return "N/A";
+    }
+
+    try {
+      // Parse 12-hour format time (e.g., "02:30 PM") to 24-hour format
+      const parseTime = (timeStr: string): Date => {
+        const [time, period] = timeStr.split(" ");
+        let [hours, minutes] = time.split(":").map(Number);
+
+        if (period === "PM" && hours !== 12) {
+          hours += 12;
+        } else if (period === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        const date = new Date(1970, 0, 1, hours, minutes, 0);
+        return date;
+      };
+
+      const inTime = parseTime(clockIn);
+      const outTime = parseTime(clockOut);
+      const diffMs = outTime.getTime() - inTime.getTime();
+
+      if (diffMs < 0) return "N/A";
+
+      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      return `${hours}h ${minutes}m`;
+    } catch (error) {
+      return "N/A";
+    }
+  };
+
+  useEffect(() => {
+    fetchAttendanceRecords();
+  }, [userId]);
+
+  const fetchAttendanceRecords = async () => {
+    try {
+      setLoading(true);
+      const params: any = { limit: 100 };
+      if (userId) params.userId = userId;
+
+      console.log("Fetching attendance with params:", params);
+      console.log("API URL:", `${process.env.NEXT_PUBLIC_API_URL}/attendance`);
+
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance`,
+        { params, ...getAuthHeaders() }
+      );
+
+      console.log("Attendance response:", response.data);
+
+      if (response.data.success && response.data.data) {
+        const formattedData = response.data.data.map((record: any) => {
+          // Ensure we get the correct ID - MongoDB returns _id as an object sometimes
+          const recordId =
+            typeof record._id === "object" ? record._id.toString() : record._id;
+
+          console.log("Processing record:", {
+            originalId: record._id,
+            processedId: recordId,
+            type: typeof record._id,
+          });
+
+          const timeIn = record.clockIn
+            ? new Date(record.clockIn).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : "N/A";
+
+          const timeOut = record.clockOut
+            ? new Date(record.clockOut).toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : "N/A";
+
+          return {
+            _id: recordId,
+            timestamp: new Date(record.date).toLocaleDateString(),
+            timeIn,
+            timeOut,
+            duration: calculateDuration(timeIn, timeOut),
+          };
+        });
+        setTableDetails(formattedData);
+      } else {
+        setTableDetails([]);
+      }
+    } catch (error: any) {
+      console.error("Error fetching attendance:", error);
+      console.error("Error response data:", error.response?.data);
+      console.error("Error response status:", error.response?.status);
+      console.error("Error message:", error.message);
+
+      // Only show toast for actual errors, not for empty data
+      if (error.response?.status !== 404) {
+        setToastMessage(
+          error.response?.data?.error ||
+            error.response?.data?.message ||
+            "Failed to fetch attendance records"
+        );
+        setShowToast(true);
+      }
+      setTableDetails([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClockIn = async (recordId: string) => {
+    console.log("🔵 CLOCK IN BUTTON CLICKED!");
+    try {
+      const cleanId = String(recordId).trim();
+
+      console.log("Clock In - Record ID:", cleanId);
+
+      const authHeaders = getAuthHeaders();
+      const requestBody = {
+        clockIn: new Date().toISOString(),
+      };
+
+      console.log(
+        "Sending request to:",
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance/${cleanId}`
+      );
+
+      const response = await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance/${cleanId}`,
+        requestBody,
+        authHeaders
+      );
+
+      console.log("Clock In Response:", response.data);
+
+      if (response.data.success) {
+        setToastMessage(response.data.message || "Clocked in successfully");
+        setShowToast(true);
+        await fetchAttendanceRecords();
+      }
+    } catch (error: any) {
+      console.error("Clock In Error:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to clock in";
+      setToastMessage(errorMessage);
+      setShowToast(true);
+    }
+  };
+
+  const handleClockOut = async (recordId: string) => {
+    console.log("🔴 CLOCK OUT BUTTON CLICKED!");
+    try {
+      const cleanId = String(recordId).trim();
+
+      console.log("Clock Out - Record ID:", cleanId);
+
+      const authHeaders = getAuthHeaders();
+      const requestBody = {
+        clockOut: new Date().toISOString(),
+      };
+
+      console.log(
+        "Sending request to:",
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance/${cleanId}`
+      );
+
+      const response = await axios.patch(
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance/${cleanId}`,
+        requestBody,
+        authHeaders
+      );
+
+      console.log("Clock Out Response:", response.data);
+
+      if (response.data.success) {
+        setToastMessage(response.data.message || "Clocked out successfully");
+        setShowToast(true);
+        await fetchAttendanceRecords();
+      }
+    } catch (error: any) {
+      console.error("Clock Out Error:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.response?.data?.message ||
+        error.message ||
+        "Failed to clock out";
+      setToastMessage(errorMessage);
+      setShowToast(true);
+    }
+  };
+
   useEffect(() => {
     if (!tableDetails || tableDetails.length === 0) {
       setFilteredData([]);
@@ -155,7 +372,7 @@ export default function EmployeeAttendanceTable({
           </span>
           <span className="text-gray-400 dark:text-gray-500">←</span>
           <span className="text-xs text-gray-500 dark:text-gray-400">
-            8h 58m
+            {row.original.duration}
           </span>
           <span className="text-gray-400 dark:text-gray-500">→</span>
           <span className="text-sm text-gray-900 dark:text-gray-100">
@@ -172,12 +389,18 @@ export default function EmployeeAttendanceTable({
     }),
     columnHelper.display({
       id: "actions",
-      cell: () => (
+      cell: ({ row }) => (
         <div className="flex items-center gap-2">
-          <button className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+          <button
+            onClick={() => handleClockIn(row.original._id)}
+            className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Clock In
           </button>
-          <button className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+          <button
+            onClick={() => handleClockOut(row.original._id)}
+            className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Clock Out
           </button>
         </div>
@@ -203,6 +426,16 @@ export default function EmployeeAttendanceTable({
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
+
+  if (loading) {
+    return (
+      <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
+        <div className="flex justify-center items-center py-20">
+          <div className="text-gray-600 dark:text-gray-400">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -298,7 +531,7 @@ export default function EmployeeAttendanceTable({
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => fetchAttendanceRecords()}
                   className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-8 py-2 text-sm font-medium text-white transition-colors hover:bg-[#029858] flex items-center justify-center gap-2"
                 >
                   <svg
@@ -329,7 +562,7 @@ export default function EmployeeAttendanceTable({
               <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-green-50 dark:bg-gray-800 hover:bg-green-50">
                 <img
                   src="../img/plus.svg"
-                  className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert
+                  className="h-8 w-8 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert
                   
                   "
                 />
@@ -346,7 +579,10 @@ export default function EmployeeAttendanceTable({
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => {
+                    setSearchTerm("");
+                    fetchAttendanceRecords();
+                  }}
                   className="w-full sm:w-auto sm:ml-auto rounded-lg bg-green-500 px-3 py-1.5 text-sm font-medium text-white  transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
                 >
                   <svg
@@ -441,72 +677,6 @@ export default function EmployeeAttendanceTable({
           </div>
         )}
       </div>
-
-      {/* Delete Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black opacity-50"
-            onClick={closeModal}
-          ></div>
-          <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Approve this ?
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to approve an employee leave request
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <button
-                onClick={closeModal}
-                className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                No
-              </button>
-              <button
-                onClick={handleDelete}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Modal */}
-      {showDenyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black opacity-50"
-            onClick={closeModal}
-          ></div>
-          <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Deny this ?
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to deny an employee leave request
-            </p>
-
-            <div className="flex flex-col sm:flex-row justify-end gap-3">
-              <button
-                onClick={closeModal}
-                className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              >
-                No
-              </button>
-              <button
-                onClick={handleDeny}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-              >
-                Yes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Toast Notification */}
       <Toast

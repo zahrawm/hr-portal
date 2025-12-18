@@ -1,12 +1,6 @@
 // src/lib/mongodb/models/LeaveRequest.ts
 import mongoose, { Schema, Document, Model } from "mongoose";
-
-export enum LeaveType {
-  ANNUAL = "ANNUAL",
-  SICK = "SICK",
-  UNPAID = "UNPAID",
-  SPECIAL = "SPECIAL",
-}
+export { default as User } from "./Users";
 
 export enum LeaveStatus {
   DRAFT = "DRAFT",
@@ -18,7 +12,7 @@ export enum LeaveStatus {
 export interface ILeaveRequest extends Document {
   _id: string;
   employeeId: mongoose.Types.ObjectId;
-  type: LeaveType;
+  // Leave type field
   status: LeaveStatus;
   startDate: Date;
   endDate: Date;
@@ -35,14 +29,10 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
   {
     employeeId: {
       type: Schema.Types.ObjectId,
-      ref: "Users",
-      required: [true, "Users ID is required"],
+      ref: "User",
+      required: [true, "User ID is required"],
     },
-    type: {
-      type: String,
-      enum: Object.values(LeaveType),
-      required: [true, "Leave type is required"],
-    },
+
     status: {
       type: String,
       enum: Object.values(LeaveStatus),
@@ -68,7 +58,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
     },
     approverId: {
       type: Schema.Types.ObjectId,
-      ref: "Users",
+      ref: "User",
     },
     approvedAt: {
       type: Date,
@@ -89,7 +79,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
 );
 
 // Indexes
-leaveRequestSchema.index({ userId: 1 });
+leaveRequestSchema.index({ employeeId: 1 });
 leaveRequestSchema.index({ status: 1 });
 leaveRequestSchema.index({ startDate: 1, endDate: 1 });
 leaveRequestSchema.index({ approverId: 1 });

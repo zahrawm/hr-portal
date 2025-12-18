@@ -145,10 +145,10 @@ export default function UserTable({
         setToastMessage("Department Deleted Successfully");
         setShowToast(true);
       } else {
-        alert(`Error: ${result.error}`);
+        // alert(`Error: ${result.error}`);
       }
     } catch (error: any) {
-      alert(`Error: ${error.message}`);
+      // alert(`Error: ${error.message}`);
     }
   };
   const handleEditSuccess = async () => {
@@ -164,16 +164,18 @@ export default function UserTable({
   useEffect(() => {
     console.log("Filtering data. tableDetails length:", tableDetails.length);
     const filtered = tableDetails.filter((item) => {
-      const searchLower = searchTerm.toLowerCase();
+      const searchLower = searchTerm.toLowerCase().trim();
+
+      if (!searchLower) return true;
 
       if (filterBy === "departmentName") {
-        return item.departmentName.toLowerCase().includes(searchLower);
+        return (item.departmentName || "").toLowerCase().includes(searchLower);
       } else if (filterBy === "description") {
-        return item.description.toLowerCase().includes(searchLower);
+        return (item.description || "").toLowerCase().includes(searchLower);
       } else {
         return (
-          item.departmentName.toLowerCase().includes(searchLower) ||
-          item.description.toLowerCase().includes(searchLower)
+          (item.departmentName || "").toLowerCase().includes(searchLower) ||
+          (item.description || "").toLowerCase().includes(searchLower)
         );
       }
     });
@@ -191,7 +193,7 @@ export default function UserTable({
 
         if (isNaN(date.getTime())) {
           return (
-            <span className="text-sm text-gray-900 dark:text-gray-100">
+            <span className="text-sm text-gray-900 dark:text-gray-100 truncate block max-w-[180px]">
               {dateValue}
             </span>
           );
@@ -210,7 +212,7 @@ export default function UserTable({
           hour12: true,
         });
         return (
-          <span className="text-sm text-gray-900 dark:text-gray-100">{`${formattedDate} | ${formattedTime}`}</span>
+          <span className="text-sm text-gray-900 dark:text-gray-100 truncate block max-w-[180px]">{`${formattedDate} | ${formattedTime}`}</span>
         );
       },
       header: () => (
@@ -222,7 +224,7 @@ export default function UserTable({
     }),
     columnHelper.accessor("departmentName", {
       cell: (info) => (
-        <span className="text-sm text-gray-900 dark:text-gray-100">
+        <span className="text-sm text-gray-900 dark:text-gray-100 truncate block max-w-[180px]">
           {info.getValue()}
         </span>
       ),
@@ -235,7 +237,10 @@ export default function UserTable({
     }),
     columnHelper.accessor("description", {
       cell: (info) => (
-        <span className="text-sm text-gray-900 dark:text-gray-100">
+        <span
+          className="text-sm text-gray-900 dark:text-gray-100 truncate block max-w-[300px]"
+          title={info.getValue()}
+        >
           {info.getValue()}
         </span>
       ),
@@ -299,7 +304,7 @@ export default function UserTable({
               >
                 <img
                   src="../img/edit.svg"
-                  className="h-4 w-4 text-green-50 dark:text-green-50 brightness-0 invert"
+                  className="h-4 w-4 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert"
                 />
                 Edit
               </button>
@@ -314,7 +319,7 @@ export default function UserTable({
               >
                 <img
                   src="../img/bin.svg"
-                  className="h-4 w-4 text-red-500 dark:text-red-500 brightness-0 invert"
+                  className="h-4 w-4 text-red-500 dark:text-red-500 dark:brightness-0 dark:invert"
                 />
                 Delete
               </button>
@@ -471,7 +476,7 @@ export default function UserTable({
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
                 src="../img/department.svg"
-                className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert "
+                className="h-8 w-8 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert"
               />
             </div>
 

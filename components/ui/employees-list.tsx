@@ -439,7 +439,7 @@ export default function EmployeeListTable({
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
                 src="../img/department.svg"
-                className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert
+                className="h-8 w-8 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert
                 "
               />
             </div>

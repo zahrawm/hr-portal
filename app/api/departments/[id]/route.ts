@@ -76,11 +76,11 @@ export async function PUT(
     }
 
     // Check if user is admin
-    if (!hasRole(authResult.user.roles, ["ADMIN", "MANAGER"])) {
+    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unauthorized. Admin/Manager access required.",
+          error: "Unauthorized. Admin access required.",
         },
         { status: 403 }
       );
@@ -198,11 +198,11 @@ export async function DELETE(
     }
 
     // Check if user is admin
-    if (!hasRole(authResult.user.roles, ["ADMIN", "MANAGER"])) {
+    if (!hasRole(authResult.user.roles, ["ADMIN"])) {
       return NextResponse.json(
         {
           success: false,
-          error: "Unauthorized. Admin/Manager access required.",
+          error: "Unauthorized. Admin access required.",
         },
         { status: 403 }
       );

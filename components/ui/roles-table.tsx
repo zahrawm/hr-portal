@@ -147,10 +147,10 @@ export default function RoleTable({
         setToastMessage("Role Deleted Successfully");
         setShowToast(true);
       } else {
-        alert(`Error: ${result.error}`);
+        // alert(`Error: ${result.error}`);
       }
     } catch (error: any) {
-      alert(`Error: ${error.message}`);
+      /// alert(`Error: ${error.message}`);
     }
   };
 
@@ -307,7 +307,7 @@ export default function RoleTable({
               >
                 <img
                   src="../img/edit.svg"
-                  className="h-4 w-4 text-green-50 dark:text-green-50 brightness-0 invert"
+                  className="h-4 w-4 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert"
                 />
                 Edit
               </button>
@@ -322,7 +322,7 @@ export default function RoleTable({
               >
                 <img
                   src="../img/bin.svg"
-                  className="h-4 w-4 text-red-500 dark:text-red-500 brightness-0 invert"
+                  className="h-4 w-4 text-red-500 dark:text-red-500 dark:brightness-0 dark:invert"
                 />
                 Delete
               </button>
@@ -476,7 +476,7 @@ export default function RoleTable({
             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
               <img
                 src="../img/square.svg"
-                className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert"
+                className="h-8 w-8 text-green-50 dark:text-green-50 dark:brightness-0 dark:invert"
               />
             </div>
 

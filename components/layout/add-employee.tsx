@@ -107,19 +107,15 @@ const AddEmployeeForm = ({ onSuccess }: AddEmployeeFormProps) => {
 
   const handleAddEmployee = async () => {
     if (!name.trim()) {
-      alert("Name is required");
       return;
     }
     if (!email.trim()) {
-      alert("Email is required");
       return;
     }
     if (!selectedDepartment) {
-      alert("Department is required");
       return;
     }
     if (!selectedRole) {
-      alert("Role is required");
       return;
     }
 
@@ -190,9 +186,7 @@ const AddEmployeeForm = ({ onSuccess }: AddEmployeeFormProps) => {
       console.error("Error creating user:", err);
 
       if (err.response?.data?.message) {
-        alert(err.response.data.message);
       } else {
-        alert("Failed to create user. Please try again.");
       }
     }
   };

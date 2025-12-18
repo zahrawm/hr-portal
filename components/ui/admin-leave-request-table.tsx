@@ -9,32 +9,20 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import {
-  Edit,
-  Ellipsis,
-  Eye,
-  RotateCcw,
-  Search,
-  Trash,
-  Trash2,
-} from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
-
 import { Toast } from "./toast";
-import EditDepartmentModal from "../layout/edit-department-modal";
-
-import EditEmployeeForm from "../layout/edit-employee";
-
-import { useRouter } from "next/navigation";
 
 type tableData = {
+  id: string;
   name: string;
-
   email: string;
   department: string;
-
   role: string;
-
+  startDate: string;
+  endDate: string;
+  reason: string;
+  status: string;
   aprove: string;
   deny: string;
 };
@@ -45,71 +33,99 @@ interface TableProps {
 
 export default function LeaveRequesTable({ tableDetails }: TableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null
-  );
-
-  const router = useRouter();
-
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
-  const [showResetPinModal, setShowResetPinModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDenyModal, setShowDenyModal] = useState(false);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedConflict, setSelectedConflict] = useState<any>(null);
-  const [newDepartmentName, setNewDepartmentName] = useState("");
-  const [newDepartmentDescription, setNewDepartmentDescription] = useState("");
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
-  const [showEditManageEmployeeModal, setshowEditMangeEmployeeModal] =
-    useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const closeModal = () => {
-    setshowEditMangeEmployeeModal(false);
-    setshowMangeEmployeeModal(false);
-    setShowViewModal(false);
-    setShowEditModal(false);
-    setShowDeleteModal(false);
+    setShowApproveModal(false);
     setShowDenyModal(false);
-    setShowResetPinModal(false);
-    setSelectedConflict(null);
-    setShowApproveModal(false);
+    setSelectedRequest(null);
   };
 
-  const handleResetPin = () => {
-    console.log("Resetting PIN for user:", selectedConflict);
-    closeModal();
-  };
-  const handleUserAddSuccess = () => {
-    setShowViewModal(false);
-    setshowEditMangeEmployeeModal(false);
-    setToastMessage("Employees Successfully Created");
-    setShowToast(true);
+  const handleApprove = async () => {
+    if (!selectedRequest) return;
+
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/leave-requests/${selectedRequest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: "APPROVED",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to approve leave request");
+      }
+
+      setToastMessage("Leave request approved successfully");
+      setShowToast(true);
+      closeModal();
+
+      // Reload the page to refresh data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Error approving leave request:", error);
+      setToastMessage("Failed to approve leave request");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleDelete = () => {
-    console.log("Approving User:", selectedConflict);
-    closeModal();
-    setToastMessage(" Employees Leave has approve  Successfully");
-    setShowToast(true);
-  };
+  const handleDeny = async () => {
+    if (!selectedRequest) return;
 
-  const handleDeny = () => {
-    console.log("Denying:", selectedConflict);
-    closeModal();
-    setToastMessage(" Employees Leave has denied  Successfully");
-    setShowToast(true);
-  };
+    setIsProcessing(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/leave-requests/${selectedRequest.id}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: "REJECTED",
+          }),
+        }
+      );
 
-  const handleEditSuccess = () => {
-    setShowEditModal(false);
-    setShowApproveModal(false);
-    setToastMessage("Employees Edited Successfully");
-    setShowToast(true);
-    setshowEditMangeEmployeeModal(false);
+      if (!response.ok) {
+        throw new Error("Failed to deny leave request");
+      }
+
+      setToastMessage("Leave request denied successfully");
+      setShowToast(true);
+      closeModal();
+
+      // Reload the page to refresh data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error("Error denying leave request:", error);
+      setToastMessage("Failed to deny leave request");
+      setShowToast(true);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const [filteredData, setFilteredData] = useState<tableData[]>(tableDetails);
@@ -122,13 +138,14 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
       const searchLower = searchTerm.toLowerCase();
 
       if (filterBy === "name") {
-        return item.department.toLowerCase().includes(searchLower);
+        return item.name.toLowerCase().includes(searchLower);
       } else if (filterBy === "email") {
         return item.email.toLowerCase().includes(searchLower);
       } else {
         return (
-          item.department.toLowerCase().includes(searchLower) ||
-          item.email.toLowerCase().includes(searchLower)
+          item.name.toLowerCase().includes(searchLower) ||
+          item.email.toLowerCase().includes(searchLower) ||
+          item.department.toLowerCase().includes(searchLower)
         );
       }
     });
@@ -139,36 +156,11 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
 
   const columns = [
     columnHelper.accessor("name", {
-      cell: (info) => {
-        const dateValue = info.getValue();
-        const date = new Date(dateValue);
-
-        // Check if date is valid
-        if (isNaN(date.getTime())) {
-          // If invalid date, just display the original string
-          return (
-            <span className="text-sm text-gray-900 dark:text-gray-100">
-              {dateValue}
-            </span>
-          );
-        }
-
-        const formattedDate = date
-          .toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "2-digit",
-          })
-          .replace(/\//g, "/");
-        const formattedTime = date.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        });
-        return (
-          <span className="text-sm text-gray-900 dark:text-gray-100">{`${formattedDate} | ${formattedTime}`}</span>
-        );
-      },
+      cell: (info) => (
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
+      ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
           Name
@@ -200,9 +192,9 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
           Department
         </span>
       ),
-      size: 300,
+      size: 150,
     }),
-    columnHelper.accessor("role", {
+    columnHelper.accessor("startDate", {
       cell: (info) => (
         <span className="text-sm text-gray-900 dark:text-gray-100">
           {info.getValue()}
@@ -210,26 +202,88 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
       ),
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-          Role
+          Start Date
         </span>
       ),
-      size: 300,
+      size: 120,
     }),
-
-    columnHelper.accessor("aprove", {
+    columnHelper.accessor("endDate", {
       cell: (info) => (
-        <div className="flex items-center justify-start">
-          <button
-            onClick={() => {
-              setSelectedConflict(info.row.original);
-              setShowDeleteModal(true);
-            }}
-            className="flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            Approve
-          </button>
-        </div>
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
       ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          End Date
+        </span>
+      ),
+      size: 120,
+    }),
+    columnHelper.accessor("reason", {
+      cell: (info) => (
+        <span className="text-sm text-gray-900 dark:text-gray-100">
+          {info.getValue()}
+        </span>
+      ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Reason
+        </span>
+      ),
+      size: 200,
+    }),
+    columnHelper.accessor("status", {
+      cell: (info) => {
+        const status = info.getValue();
+        let statusColor = "text-yellow-600 dark:text-yellow-400";
+        let statusBg = "bg-yellow-50 dark:bg-yellow-900/20";
+
+        if (status === "APPROVED") {
+          statusColor = "text-green-600 dark:text-green-400";
+          statusBg = "bg-green-50 dark:bg-green-900/20";
+        } else if (status === "REJECTED") {
+          statusColor = "text-red-600 dark:text-red-400";
+          statusBg = "bg-red-50 dark:bg-red-900/20";
+        }
+
+        return (
+          <span
+            className={`text-sm px-2 py-1 rounded ${statusBg} ${statusColor}`}
+          >
+            {status}
+          </span>
+        );
+      },
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Status
+        </span>
+      ),
+      size: 100,
+    }),
+    columnHelper.accessor("aprove", {
+      cell: (info) => {
+        const row = info.row.original;
+        const isPending = row.status === "PENDING";
+
+        return (
+          <div className="flex items-center justify-start">
+            <button
+              onClick={() => {
+                setSelectedRequest(row);
+                setShowApproveModal(true);
+              }}
+              disabled={!isPending}
+              className={`flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                !isPending ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              Approve
+            </button>
+          </div>
+        );
+      },
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
           Approve
@@ -237,21 +291,28 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
       ),
       size: 120,
     }),
-
     columnHelper.accessor("deny", {
-      cell: (info) => (
-        <div className="flex items-center justify-start">
-          <button
-            onClick={() => {
-              setSelectedConflict(info.row.original);
-              setShowDenyModal(true);
-            }}
-            className="flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-          >
-            Deny
-          </button>
-        </div>
-      ),
+      cell: (info) => {
+        const row = info.row.original;
+        const isPending = row.status === "PENDING";
+
+        return (
+          <div className="flex items-center justify-start">
+            <button
+              onClick={() => {
+                setSelectedRequest(row);
+                setShowDenyModal(true);
+              }}
+              disabled={!isPending}
+              className={`flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                !isPending ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
+              Deny
+            </button>
+          </div>
+        );
+      },
       header: () => (
         <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
           Deny
@@ -281,7 +342,7 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
   return (
     <>
       <div className="w-full bg-white dark:bg-gray-900 p-4 sm:p-6">
-        {/* Search and Actions Bar */}
+        {/* Search Bar */}
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <div className="relative flex-1 w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
@@ -292,37 +353,6 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 py-2 pl-10 pr-4 text-sm text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:border-gray-400 dark:focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-400 dark:focus:ring-gray-500"
             />
-            {showFilterDropdown && (
-              <div className="absolute left-0 top-12 z-10 w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-                <button
-                  onClick={() => {
-                    setFilterBy("all");
-                    setShowFilterDropdown(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => {
-                    setFilterBy("name");
-                    setShowFilterDropdown(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
-                >
-                  Name
-                </button>
-                <button
-                  onClick={() => {
-                    setFilterBy("email");
-                    setShowFilterDropdown(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
-                >
-                  Email
-                </button>
-              </div>
-            )}
           </div>
 
           <div className="w-full sm:w-auto">
@@ -355,93 +385,7 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
           </div>
         </div>
 
-        {/* Empty State - when no results found */}
-        {filteredData.length === 0 && tableDetails.length > 0 && (
-          <div className="flex flex-col items-center justify-center py-20 px-4">
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <img
-                src="../img/leave.svg"
-                className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert"
-              />
-            </div>
-
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              No Leave Request yet
-            </h3>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
-              Looks like there are was no leave request added on HR mini. Click
-              the "Refresh" button to reload the page
-            </p>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-[#02AA69] px-8 py-1.5 text-sm font-medium text-white transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Refresh
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Empty State - when no results found */}
-        {filteredData.length === 0 && searchTerm.length > 0 && (
-          <div className="flex flex-col items-center justify-center py-20 px-4">
-            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <img
-                src="../img/leave.svg"
-                className="h-8 w-8 text-green-50 dark:text-green-50 brightness-0 invert"
-              />
-            </div>
-
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3">
-              No Results found
-            </h3>
-
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
-              We could not matching results for your search. Click the "clear"
-              button to try again
-            </p>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-green-500 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Refresh
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Table - only show if there are filtered results */}
+        {/* Table */}
         {filteredData.length > 0 && (
           <div className="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
             <div className="overflow-x-auto">
@@ -489,7 +433,7 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
               </table>
             </div>
 
-            {/* Pagination - Inside Table */}
+            {/* Pagination */}
             <div className="flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-4 py-3 gap-3">
               <div className="text-sm text-gray-600 dark:text-gray-400">
                 0 of {filteredData.length} row(s) selected.
@@ -515,8 +459,8 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
         )}
       </div>
 
-      {/* Delete Modal */}
-      {showDeleteModal && (
+      {/* Approve Modal */}
+      {showApproveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
             className="absolute inset-0 bg-black opacity-50"
@@ -524,31 +468,34 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
           ></div>
           <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Approve this ?
+              Approve Leave Request?
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to approve an employee leave request
+              Are you sure you want to approve this leave request for{" "}
+              {selectedRequest?.name}?
             </p>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={closeModal}
+                disabled={isProcessing}
                 className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
-                No
+                Cancel
               </button>
               <button
-                onClick={handleDelete}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                onClick={handleApprove}
+                disabled={isProcessing}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-green-600 disabled:opacity-50"
               >
-                Yes
+                {isProcessing ? "Processing..." : "Approve"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Modal */}
+      {/* Deny Modal */}
       {showDenyModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
@@ -557,24 +504,27 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
           ></div>
           <div className="relative z-[60] w-full max-w-md rounded-lg bg-white dark:bg-gray-900 p-6 shadow-xl">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Deny this ?
+              Deny Leave Request?
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to deny an employee leave request
+              Are you sure you want to deny this leave request for{" "}
+              {selectedRequest?.name}?
             </p>
 
             <div className="flex flex-col sm:flex-row justify-end gap-3">
               <button
                 onClick={closeModal}
+                disabled={isProcessing}
                 className="w-full sm:w-auto rounded-md px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
-                No
+                Cancel
               </button>
               <button
                 onClick={handleDeny}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-green-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+                disabled={isProcessing}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-md bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-50"
               >
-                Yes
+                {isProcessing ? "Processing..." : "Deny"}
               </button>
             </div>
           </div>

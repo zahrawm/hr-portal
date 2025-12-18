@@ -13,12 +13,14 @@ import { useRouter } from "next/navigation";
 const SubmitLeaveForm: React.FC = () => {
   const router = useRouter();
   const [dateRange, setDateRange] = useState("");
+  const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const monthNames = [
     "January",
@@ -99,27 +101,76 @@ const SubmitLeaveForm: React.FC = () => {
     );
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validation
     if (!dateRange) {
-      alert("Please select a date range");
       return;
     }
 
     if (!reason.trim()) {
-      alert("Please provide a reason for your leave");
       return;
     }
 
     if (reason.trim().length < 10) {
-      alert("Reason must be at least 10 characters long");
       return;
     }
 
-    console.log("Submitting leave request:", { dateRange, reason });
+    setIsSubmitting(true);
 
-    // Navigate back to Leave Request page with success flag
-    router.push("/leaveRequests?success=true");
+    try {
+      // Get the token from localStorage or cookies
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        router.push("/login");
+        return;
+      }
+
+      if (!selectedStartDate || !selectedEndDate) {
+        return;
+      }
+
+      const requestData = {
+        startDate: selectedStartDate.toISOString(),
+        endDate: selectedEndDate.toISOString(),
+        reason: reason.trim(),
+        status: "PENDING",
+      };
+
+      console.log("Sending request data:", requestData);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(requestData),
+        }
+      );
+
+      console.log("Response status:", response.status);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to submit leave request");
+      }
+
+      console.log("Leave request submitted successfully:", data);
+
+      // Navigate back to Leave Request page with success flag
+      router.push("/leaveRequests?success=true");
+    } catch (error: any) {
+      console.error("Error submitting leave request:", error);
+      alert(
+        error.message || "Failed to submit leave request. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -149,7 +200,7 @@ const SubmitLeaveForm: React.FC = () => {
                 <img
                   src="../img/leave.svg"
                   alt="Department Icon"
-                  className="h-8 w-8 brightness-0 invert"
+                  className="h-8 w-8 dark:brightness-0 dark:invert"
                 />
               </div>
             </div>
@@ -204,9 +255,9 @@ const SubmitLeaveForm: React.FC = () => {
 
                   {/* Day Names */}
                   <div className="grid grid-cols-7 gap-1 mb-2">
-                    {dayNames.map((day) => (
+                    {dayNames.map((day, index) => (
                       <div
-                        key={day}
+                        key={`day-name-${index}`}
                         className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2"
                       >
                         {day}
@@ -229,7 +280,7 @@ const SubmitLeaveForm: React.FC = () => {
 
                       return (
                         <button
-                          key={index}
+                          key={`calendar-day-${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}-${index}`}
                           onClick={() => handleDateClick(day.date)}
                           className={`
                             p-2 text-sm rounded-lg transition-colors
@@ -277,9 +328,10 @@ const SubmitLeaveForm: React.FC = () => {
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            className="w-full px-6 py-3 sm:py-3.5 bg-emerald-500 dark:bg-emerald-600 text-white rounded-lg hover:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors font-medium text-sm sm:text-base"
+            disabled={isSubmitting}
+            className="w-full px-6 py-3 sm:py-3.5 bg-emerald-500 dark:bg-emerald-600 text-white rounded-lg hover:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors font-medium text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Submit Leave
+            {isSubmitting ? "Submitting..." : "Submit Leave"}
           </button>
         </div>
       </div>

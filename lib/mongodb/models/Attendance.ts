@@ -1,5 +1,5 @@
-
 import mongoose, { Schema, Document, Model } from "mongoose";
+export { default as User } from "./Users";
 
 export interface IAttendance extends Document {
   _id: string;
@@ -7,9 +7,7 @@ export interface IAttendance extends Document {
   date: Date;
   clockIn: Date;
   clockOut?: Date;
-  notes?: string;
   hoursWorked?: number;
-  isLate: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -18,8 +16,8 @@ const attendanceSchema = new Schema<IAttendance>(
   {
     userId: {
       type: Schema.Types.ObjectId,
-      ref: "Users",
-      required: [true, "Users ID is required"],
+      required: [true, "User ID is required"],
+      ref: "User", // FIXED: Added back the reference
     },
     date: {
       type: Date,
@@ -43,17 +41,9 @@ const attendanceSchema = new Schema<IAttendance>(
         message: "Clock out time must be after clock in time",
       },
     },
-    notes: {
-      type: String,
-      trim: true,
-    },
     hoursWorked: {
       type: Number,
       min: [0, "Hours worked cannot be negative"],
-    },
-    isLate: {
-      type: Boolean,
-      default: false,
     },
   },
   {
@@ -61,11 +51,9 @@ const attendanceSchema = new Schema<IAttendance>(
   }
 );
 
-// Indexes
 attendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
 attendanceSchema.index({ date: 1 });
 
-// Calculate hours worked when clock out is set
 attendanceSchema.pre("save", function (next) {
   if (this.clockOut && this.clockIn) {
     const diffMs = this.clockOut.getTime() - this.clockIn.getTime();

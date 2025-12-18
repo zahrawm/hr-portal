@@ -19,4 +19,3 @@ export type { IPerformanceReview } from "./PerformanceReview";
 
 // Export enums
 
-export { LeaveType, LeaveStatus } from "./LeaveRequest";

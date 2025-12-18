@@ -143,19 +143,15 @@ const EditEmployeeForm = ({
 
   const handleEditEmployee = async () => {
     if (!name.trim()) {
-      alert("Name is required");
       return;
     }
     if (!email.trim()) {
-      alert("Email is required");
       return;
     }
     if (!selectedDepartment) {
-      alert("Department is required");
       return;
     }
     if (!selectedRole) {
-      alert("Role is required");
       return;
     }
 
@@ -220,9 +216,7 @@ const EditEmployeeForm = ({
       console.error("Error updating user:", err);
 
       if (err.response?.data?.message) {
-        alert(err.response.data.message);
       } else {
-        alert("Failed to update user. Please try again.");
       }
     }
   };

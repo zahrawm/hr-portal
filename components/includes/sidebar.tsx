@@ -88,15 +88,15 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
     },
     {
       href: "/adminLeaveRequest",
-      label: "Leave Requests",
+      label: "Admin Leave Requests",
       icon: "../img/leave.svg",
       isImage: true,
-      activeKey: "admin leave requests", // Changed this line
+      activeKey: "admin leave requests",
       roles: ["ADMIN", "MANAGER"],
     },
     {
       href: "/attendance",
-      label: "Attendance",
+      label: " Admin Attendance",
       icon: "../img/plus.svg",
       isImage: true,
       activeKey: "attendance",
@@ -208,7 +208,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                 >
                   <div
                     className={cn(
-                      "flex flex-shrink-0 items-center justify-center brightness-0 invert",
+                      "flex flex-shrink-0 items-center justify-center dark:brightness-0 dark:invert",
                       isOpen ? "h-5 w-5" : "h-6 w-6"
                     )}
                   >
@@ -251,7 +251,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                         {employee?.name}
                       </div>
                       <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Admin
+                        {userRoles[0] || "User"}
                       </h1>
                     </div>
                   </div>
@@ -279,6 +279,17 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                   </p>
                 </div>
                 <div className="py-1">
+                  <div className="py-1 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => {
+                        localStorage.removeItem("user");
+                        window.location.href = "/";
+                      }}
+                      className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Log out
+                    </button>
+                  </div>
                   <button className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     Profile
                   </button>
@@ -297,11 +308,6 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                 <div className="py-1 border-t border-gray-200 dark:border-gray-700">
                   <button className="w-full px-3 py-2 text-left text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     API
-                  </button>
-                </div>
-                <div className="py-1 border-t border-gray-200 dark:border-gray-700">
-                  <button className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    Log out
                   </button>
                 </div>
               </div>

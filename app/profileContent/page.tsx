@@ -39,7 +39,7 @@ export default function EmployeeProfileContent() {
               <img
                 src="../img/user.svg"
                 alt="Employee Profile Icon"
-                className="h-6 w-6 brightness-0 invert
+                className="h-6 w-6 dark:brightness-0 dark:invert
                 
                 "
               />
