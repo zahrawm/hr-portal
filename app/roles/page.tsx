@@ -72,7 +72,7 @@ const RolesManagement: React.FC = () => {
       const result = await response.json();
 
       if (!result.success || !result.data || result.data.length === 0) {
-        alert("No roles to export");
+       // alert("No roles to export");
         return;
       }
 

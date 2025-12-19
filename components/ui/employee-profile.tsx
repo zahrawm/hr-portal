@@ -54,8 +54,10 @@ export default function EmployeeProfileListTable({
 
   const router = useRouter();
 
-  const handleProfile = () => {
-    router.push("/profileContent"); // Navigate to /dashboard
+  const handleProfile = (employee: tableData) => {
+    // Store selected employee data in localStorage
+    localStorage.setItem("selectedEmployee", JSON.stringify(employee));
+    router.push("/profileContent");
   };
 
   const handleEdit = (employee: tableData) => {
@@ -272,7 +274,7 @@ export default function EmployeeProfileListTable({
         <div className="flex items-center justify-start">
           <button
             onClick={() => {
-              handleProfile();
+              handleProfile(info.row.original);
               setSelectedConflict(info.row.original);
             }}
             className="flex items-center gap-2 rounded-md border border-gray-900 dark:border-gray-600 bg-white dark:bg-gray-800 px-5 py-2 text-sm font-medium text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"

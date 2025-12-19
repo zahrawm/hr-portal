@@ -73,11 +73,40 @@ const EmployeeAttendace: React.FC = () => {
     closeModal();
   };
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = () => {
+    if (attendance.length === 0) {
+      setToastMessage("No data to export");
+      setShowToast(true);
+      return;
+    }
+
+    // Convert data to CSV format
+    const headers = ["Name", "Employee ID", "Time", "Status"];
+    const csvRows = [
+      headers.join(","),
+      ...attendance.map((row) =>
+        [row.name, row.employeeId, row.time, row.status].join(",")
+      ),
+    ];
+    const csvContent = csvRows.join("\n");
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `attendance_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     setToastMessage("CSV exported successfully!");
     setShowToast(true);
   };
-
   const totalPages = 10;
   console.log("Here are the attendance and the error", attendance, error);
 
@@ -96,17 +125,15 @@ const EmployeeAttendace: React.FC = () => {
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-                Attendance
+                Your Attendance
               </h1>
               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-                Check all the attendance on the HR Mini ({attendance.length}{" "}
-                records)
+                Check all the attendance on the HR Mini
               </p>
             </div>
           </div>
           <button
             onClick={handleExportCSV}
-            disabled={attendance.length === 0}
             className="mr-10 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-600 dark:border-gray-500 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <img

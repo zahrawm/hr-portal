@@ -45,19 +45,15 @@ interface AttendanceRecord {
   clockOut: string;
 }
 
-const AttendanceTable = () => {
+interface AttendanceTableProps {
+  onDataChange?: (data: AttendanceRecord[]) => void;
+}
+
+const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
   const [currentPage, setCurrentPage] = useState(0);
   const itemsPerPage = 6;
 
-  const [data, setData] = useState<AttendanceRecord[]>([
-    {
-      id: "1",
-      timestamp: "18/12/24 10:00:00",
-      clockIn: "10:00 AM",
-      duration: "8h 00m",
-      clockOut: "6:00 PM",
-    },
-  ]);
+  const [data, setData] = useState<AttendanceRecord[]>([]);
 
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
@@ -67,78 +63,105 @@ const AttendanceTable = () => {
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   // Fetch attendance data from API
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem("token");
+  const fetchData = async () => {
+    try {
+      const token = localStorage.getItem("token");
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}attendance`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}attendance`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+
+        if (result.success && result.data && result.data.length > 0) {
+          // Get current user's ID from token
+          const tokenPayload = token
+            ? JSON.parse(atob(token.split(".")[1]))
+            : null;
+          const currentUserId = tokenPayload?.id;
+
+          // Filter to show only current user's records
+          const userRecords = result.data.filter(
+            (record: any) =>
+              record.userId?._id === currentUserId ||
+              record.userId === currentUserId
+          );
+
+          if (userRecords.length === 0) {
+            setData([]);
+            onDataChange?.([]);
+            return;
           }
-        );
+          const transformedData = userRecords.map((record: any) => {
+            const clockInTime = new Date(record.clockIn);
+            const clockOutTime = record.clockOut
+              ? new Date(record.clockOut)
+              : null;
 
-        if (response.ok) {
-          const result = await response.json();
+            let duration = "In Progress";
+            if (clockOutTime) {
+              const diffMs = clockOutTime.getTime() - clockInTime.getTime();
+              const hours = Math.floor(diffMs / (1000 * 60 * 60));
+              const minutes = Math.floor(
+                (diffMs % (1000 * 60 * 60)) / (1000 * 60)
+              );
+              duration = `${hours}h ${minutes}m`;
+            }
 
-          if (result.success && result.data && result.data.length > 0) {
-            const transformedData = result.data.map((record: any) => {
-              const clockInTime = new Date(record.clockIn);
-              const clockOutTime = record.clockOut
-                ? new Date(record.clockOut)
-                : null;
-
-              let duration = "In Progress";
-              if (clockOutTime) {
-                const diffMs = clockOutTime.getTime() - clockInTime.getTime();
-                const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                const minutes = Math.floor(
-                  (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-                );
-                duration = `${hours}h ${minutes}m`;
-              }
-
-              return {
-                id: record._id,
-                timestamp: new Date(record.date)
-                  .toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })
-                  .replace(",", ""),
-                clockIn: clockInTime.toLocaleTimeString("en-US", {
+            return {
+              id: record._id,
+              timestamp: new Date(record.date)
+                .toLocaleString("en-GB", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "2-digit",
                   hour: "2-digit",
                   minute: "2-digit",
-                  hour12: true,
-                }),
-                duration: duration,
-                clockOut: clockOutTime
-                  ? clockOutTime.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : "Not yet",
-              };
-            });
+                  second: "2-digit",
+                })
+                .replace(",", ""),
+              clockIn: clockInTime.toLocaleTimeString("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }),
+              duration: duration,
+              clockOut: clockOutTime
+                ? clockOutTime.toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                : "Not yet",
+            };
+          });
 
-            setData(transformedData);
-          }
+          setData(transformedData);
+          onDataChange?.(transformedData);
+        } else {
+          setData([]);
+          onDataChange?.([]);
         }
-      } catch (error) {
-        console.error("Error fetching attendance:", error);
+      } else {
+        setData([]);
+        onDataChange?.([]);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      setData([]);
+      onDataChange?.([]);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -185,72 +208,7 @@ const AttendanceTable = () => {
       if (result.success) {
         setToastMessage("Clocked In successfully!");
         setShowToast(true);
-
-        // Refresh data from API
-        const fetchResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}attendance`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (fetchResponse.ok) {
-          const fetchResult = await fetchResponse.json();
-          if (
-            fetchResult.success &&
-            fetchResult.data &&
-            fetchResult.data.length > 0
-          ) {
-            const transformedData = fetchResult.data.map((record: any) => {
-              const clockInTime = new Date(record.clockIn);
-              const clockOutTime = record.clockOut
-                ? new Date(record.clockOut)
-                : null;
-
-              let duration = "In Progress";
-              if (clockOutTime) {
-                const diffMs = clockOutTime.getTime() - clockInTime.getTime();
-                const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                const minutes = Math.floor(
-                  (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-                );
-                duration = `${hours}h ${minutes}m`;
-              }
-
-              return {
-                id: record._id,
-                timestamp: new Date(record.date)
-                  .toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })
-                  .replace(",", ""),
-                clockIn: clockInTime.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                }),
-                duration: duration,
-                clockOut: clockOutTime
-                  ? clockOutTime.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : "Not yet",
-              };
-            });
-            setData(transformedData);
-          }
-        }
+        await fetchData();
       } else {
         setToastMessage(result.message || "Failed to clock in");
         setShowToast(true);
@@ -282,72 +240,7 @@ const AttendanceTable = () => {
       if (result.success) {
         setToastMessage("Clocked Out successfully!");
         setShowToast(true);
-
-        // Refresh data from API
-        const fetchResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}attendance`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (fetchResponse.ok) {
-          const fetchResult = await fetchResponse.json();
-          if (
-            fetchResult.success &&
-            fetchResult.data &&
-            fetchResult.data.length > 0
-          ) {
-            const transformedData = fetchResult.data.map((record: any) => {
-              const clockInTime = new Date(record.clockIn);
-              const clockOutTime = record.clockOut
-                ? new Date(record.clockOut)
-                : null;
-
-              let duration = "In Progress";
-              if (clockOutTime) {
-                const diffMs = clockOutTime.getTime() - clockInTime.getTime();
-                const hours = Math.floor(diffMs / (1000 * 60 * 60));
-                const minutes = Math.floor(
-                  (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-                );
-                duration = `${hours}h ${minutes}m`;
-              }
-
-              return {
-                id: record._id,
-                timestamp: new Date(record.date)
-                  .toLocaleString("en-GB", {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })
-                  .replace(",", ""),
-                clockIn: clockInTime.toLocaleTimeString("en-US", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                }),
-                duration: duration,
-                clockOut: clockOutTime
-                  ? clockOutTime.toLocaleTimeString("en-US", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })
-                  : "Not yet",
-              };
-            });
-            setData(transformedData);
-          }
-        }
+        await fetchData();
       } else {
         setToastMessage(result.message || "Failed to clock out");
         setShowToast(true);
@@ -431,6 +324,22 @@ const AttendanceTable = () => {
         onClose={() => setShowToast(false)}
       />
       <div className="w-full max-w-7xl mx-auto p-6">
+        {/* Clock In/Out Buttons at the Top */}
+        <div className="flex items-center justify-end gap-3 mb-6">
+          <button
+            onClick={handleClockIn}
+            className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-6 py-3 text-base font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Clock In
+          </button>
+          <button
+            onClick={handleClockOut}
+            className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-6 py-3 text-base font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Clock Out
+          </button>
+        </div>
+
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-4">
           <div className="relative flex-1 w-full sm:max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
