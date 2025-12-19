@@ -163,7 +163,7 @@ export async function GET(req: NextRequest) {
     // Build base query
     const query: any = {};
 
-    // If userId is provided, use it; otherwise use authenticated user's ID
+    // If userId is provided, use it to filter for that specific user
     if (userId) {
       // Validate ObjectId format
       if (!mongoose.Types.ObjectId.isValid(userId)) {
@@ -183,10 +183,8 @@ export async function GET(req: NextRequest) {
       }
 
       query.userId = userId;
-    } else {
-      // Default to authenticated user's records
-      query.userId = authResult.user.id;
     }
+    // If no userId is provided, return ALL attendance records (not just authenticated user's)
 
     // Date range filter
     if (startDate || endDate) {

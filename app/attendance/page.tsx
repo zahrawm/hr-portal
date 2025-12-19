@@ -19,13 +19,18 @@ import { Toast } from "@/components/ui/toast";
 type ConflictType = Attendance | null;
 
 interface Attendance {
-  name: string;
-  employeeId: number;
-  time: string;
+  id: string;
+  userId: string;
+  userName: string;
+  date: string;
+  timestamp: string;
+  clockIn: string;
+  duration: string;
+  clockOut: string;
   status: string;
 }
 
-const AdminAttend: React.FC = () => {
+const AdminAdttend: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("Ghana");
   const [selectedRole, setSelectedRole] = useState("Role");
@@ -78,6 +83,73 @@ const AdminAttend: React.FC = () => {
     setShowToast(true);
   };
 
+  const attendanceData: Attendance[] = [
+    // {
+    //   name: "Luck Smart",
+    //   employeeId: 12345,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "Jemila Ahmed",
+    //   employeeId: 12346,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "Jemila Ahmed",
+    //   employeeId: 12346,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "Swaatson Junior",
+    //   employeeId: 12347,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "Amara Johnson",
+    //   employeeId: 12348,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "David Smith",
+    //   employeeId: 12349,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "Linda Williams",
+    //   employeeId: 12350,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+    // {
+    //   name: "Michael Brown",
+    //   employeeId: 12351,
+    //   clockIn: "9:00 AM",
+    //   clockOut: "5:00 PM",
+    //   status: "Active",
+    //   duration: "8h 0m",
+    // },
+  ];
+
   const totalPages = 10;
   console.log("Here are the attendance and the error", attendance, error);
 
@@ -120,7 +192,7 @@ const AdminAttend: React.FC = () => {
         {/* User Table or Empty State */}
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
-            <AdminAttendanceTable tableDetails={[]} />
+            <AdminAttendanceTable />
           </div>
         </div>
       </AppLayout>
@@ -128,4 +200,4 @@ const AdminAttend: React.FC = () => {
   );
 };
 
-export default AdminAttend;
+export default AdminAdttend;
