@@ -256,7 +256,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
     () => [
       {
         accessorKey: "timestamp",
-        header: "Timestamps",
+        header: "Date",
         cell: (info) => (
           <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {info.getValue() as string}
@@ -290,18 +290,18 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
         header: "",
         cell: () => (
           <div className="flex items-center gap-2">
-            <button
+            {/* <button
               onClick={handleClockIn}
               className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Clock In
-            </button>
-            <button
+            </button> */}
+            {/* <button
               onClick={handleClockOut}
               className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Clock Out
-            </button>
+            </button> */}
           </div>
         ),
       },
