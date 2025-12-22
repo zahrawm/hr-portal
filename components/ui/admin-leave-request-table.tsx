@@ -394,7 +394,10 @@ export default function LeaveRequesTable({ tableDetails }: TableProps) {
                   {table.getHeaderGroups().map((headerGroup) => (
                     <tr key={headerGroup.id}>
                       {headerGroup.headers.map((header) => (
-                        <th key={header.id} className="px-2 py-3 text-left">
+                        <th
+                          key={header.id}
+                          className="px-2 py-3 text-left border-b border-gray-200 dark:border-gray-700"
+                        >
                           <div
                             {...{
                               className: header.column.getCanSort()
