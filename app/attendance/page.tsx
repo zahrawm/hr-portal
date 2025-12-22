@@ -79,8 +79,115 @@ const AdminAdttend: React.FC = () => {
   };
 
   const handleExportCSV = async () => {
-    setToastMessage("CSV exported successfully!");
-    setShowToast(true);
+    try {
+      // Fetch the attendance data
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}attendance`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+
+        if (result.success && result.data && result.data.length > 0) {
+          // Transform data to CSV format
+          const csvData = result.data.map(
+            (record: {
+              clockIn: string | number | Date;
+              clockOut: string | number | Date;
+              userId: { name: any; _id: any };
+              date: string | number | Date;
+            }) => {
+              const clockInTime = new Date(record.clockIn);
+              const clockOutTime = record.clockOut
+                ? new Date(record.clockOut)
+                : null;
+
+              let duration = "In Progress";
+              if (clockOutTime) {
+                const diffMs = clockOutTime.getTime() - clockInTime.getTime();
+                const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                const minutes = Math.floor(
+                  (diffMs % (1000 * 60 * 60)) / (1000 * 60)
+                );
+                duration = `${hours}h ${minutes}m`;
+              }
+
+              return {
+                "Employee Name": record.userId?.name || "Unknown",
+                "Employee ID": record.userId?._id || record.userId || "",
+                Date: new Date(record.date).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                }),
+                "Clock In": clockInTime.toLocaleTimeString("en-US", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                }),
+                "Clock Out": clockOutTime
+                  ? clockOutTime.toLocaleTimeString("en-US", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })
+                  : "Not yet",
+                Duration: duration,
+                Status: "Active",
+              };
+            }
+          );
+
+          // Create CSV content
+          const headers = Object.keys(csvData[0]);
+          const csvContent = [
+            headers.join(","),
+            ...csvData.map((row: { [x: string]: any }) =>
+              headers.map((header) => `"${row[header]}"`).join(",")
+            ),
+          ].join("\n");
+
+          // Create blob and download
+          const blob = new Blob([csvContent], {
+            type: "text/csv;charset=utf-8;",
+          });
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(blob);
+
+          link.setAttribute("href", url);
+          link.setAttribute(
+            "download",
+            `attendance_${new Date().toISOString().split("T")[0]}.csv`
+          );
+          link.style.visibility = "hidden";
+
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          setToastMessage("CSV exported successfully!");
+          setShowToast(true);
+        } else {
+          setToastMessage("No data to export");
+          setShowToast(true);
+        }
+      } else {
+        setToastMessage("Failed to fetch attendance data");
+        setShowToast(true);
+      }
+    } catch (error) {
+      console.error("Error exporting CSV:", error);
+      setToastMessage("Error exporting CSV");
+      setShowToast(true);
+    }
   };
 
   const attendanceData: Attendance[] = [

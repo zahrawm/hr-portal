@@ -25,6 +25,14 @@ interface Attendance {
   status: string;
 }
 
+interface AttendanceRecord {
+  id: string;
+  timestamp: string;
+  clockIn: string;
+  duration: string;
+  clockOut: string;
+}
+
 const EmployeeAttendace: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("Ghana");
@@ -48,6 +56,9 @@ const EmployeeAttendace: React.FC = () => {
 
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
+  // Add state to store attendance data from child component
+  const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
 
   const closeModal = () => {
     setShowViewModal(false);
@@ -74,20 +85,27 @@ const EmployeeAttendace: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    if (attendance.length === 0) {
+    if (attendanceData.length === 0) {
       setToastMessage("No data to export");
       setShowToast(true);
       return;
     }
 
-    // Convert data to CSV format
-    const headers = ["Name", "Employee ID", "Time", "Status"];
-    const csvRows = [
-      headers.join(","),
-      ...attendance.map((row) =>
-        [row.name, row.employeeId, row.time, row.status].join(",")
-      ),
-    ];
+    // Create CSV headers
+    const headers = ["Date", "Clock In", "Duration", "Clock Out"];
+    const csvRows = [headers.join(",")];
+
+    // Add data rows
+    attendanceData.forEach((record) => {
+      const rowData = [
+        `"${record.timestamp}"`,
+        `"${record.clockIn}"`,
+        `"${record.duration}"`,
+        `"${record.clockOut}"`,
+      ];
+      csvRows.push(rowData.join(","));
+    });
+
     const csvContent = csvRows.join("\n");
 
     // Create blob and download
@@ -103,10 +121,12 @@ const EmployeeAttendace: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 
     setToastMessage("CSV exported successfully!");
     setShowToast(true);
   };
+
   const totalPages = 10;
   console.log("Here are the attendance and the error", attendance, error);
 
@@ -147,7 +167,7 @@ const EmployeeAttendace: React.FC = () => {
         {/* User Table or Empty State */}
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
-            <AttendanceTable />
+            <AttendanceTable onDataChange={setAttendanceData} />
           </div>
         </div>
       </AppLayout>
