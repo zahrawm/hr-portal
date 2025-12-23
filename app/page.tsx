@@ -13,6 +13,7 @@ export default function LoginForm() {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -44,7 +45,10 @@ export default function LoginForm() {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
-    validateEmail(value);
+    // Only validate if user has already blurred the field once
+    if (emailTouched) {
+      validateEmail(value);
+    }
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -153,6 +157,10 @@ export default function LoginForm() {
               id="email"
               value={email}
               onChange={handleEmailChange}
+              onBlur={() => {
+                setEmailTouched(true);
+                validateEmail(email);
+              }}
               placeholder="abena@gmail.com"
               disabled={isLoading}
               className={`w-full px-3.5 py-2.5 border ${

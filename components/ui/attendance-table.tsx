@@ -59,7 +59,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
   const [showToast, setShowToast] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const [filterBy, setFilterBy] = useState<"all" | "timestamp">("all");
+  const [filterBy, setFilterBy] = useState<"all" | "date">("all");
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   // Fetch attendance data from API
@@ -164,7 +164,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
     if (!searchTerm) return data;
 
     return data.filter((record) => {
-      if (filterBy === "timestamp") {
+      if (filterBy === "date") {
         return record.timestamp
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
@@ -358,12 +358,12 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
                 </button>
                 <button
                   onClick={() => {
-                    setFilterBy("timestamp");
+                    setFilterBy("date");
                     setShowFilterDropdown(false);
                   }}
                   className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700"
                 >
-                  Timestamp
+                  Date
                 </button>
               </div>
             )}
@@ -388,7 +388,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
                 />
               </svg>
               <span className="truncate">
-                Filter by: {filterBy === "all" ? "All" : "Timestamp"}
+                Filter by: {filterBy === "all" ? "All" : "Date"}
               </span>
             </button>
           </div>

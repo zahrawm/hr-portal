@@ -18,7 +18,7 @@ import {
   Trash,
   Trash2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Toast } from "./toast";
 import EditDepartmentModal from "../layout/edit-department-modal";
@@ -82,6 +82,8 @@ export default function ManageLeaveRequestTable({
   const [showEditManageEmployeeModal, setshowEditMangeEmployeeModal] =
     useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const actionsDropdownRef = useRef<HTMLDivElement>(null);
 
   const closeModal = () => {
     setshowEditMangeEmployeeModal(false);

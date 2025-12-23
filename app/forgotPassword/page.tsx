@@ -29,7 +29,11 @@ export default function ForgotPassword() {
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setEmail(value);
-    validateEmail(value);
+    setEmailError("");
+  };
+
+  const handleBlur = () => {
+    validateEmail(email);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -88,6 +92,7 @@ export default function ForgotPassword() {
               id="email"
               value={email}
               onChange={handleEmailChange}
+              onBlur={handleBlur}
               placeholder="abena@gmail.com"
               disabled={isLoading}
               className={`w-full px-3.5 py-2.5 border ${

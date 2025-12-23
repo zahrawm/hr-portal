@@ -127,18 +127,32 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
 
   const [employee, setEmployee] = useState<any>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false); // prevents early return
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // ---- Load user from localStorage safely ----
+  // Load user from localStorage and restore sidebar state
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      const savedSidebarState = localStorage.getItem("sidebarOpen");
 
       setEmployee(storedUser);
-      setUserRoles(storedUser?.role || []); // Adjust based on how roles are stored
+      setUserRoles(storedUser?.role || []);
       setIsLoaded(true);
+
+      // Restore sidebar state if it was saved
+      if (savedSidebarState !== null) {
+        setIsOpen(savedSidebarState === "true");
+      }
     }
   }, []);
+
+  // Save sidebar state to localStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== "undefined" && isLoaded) {
+      localStorage.setItem("sidebarOpen", String(isOpen));
+    }
+  }, [isOpen, isLoaded]);
+
   const filteredLinks = useMemo(() => {
     return navLinks.filter((link) =>
       link.roles.some((role) => userRoles.includes(role))
@@ -283,6 +297,9 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                     <button
                       onClick={() => {
                         localStorage.removeItem("user");
+                        localStorage.removeItem("token");
+                        localStorage.removeItem("userId");
+                        localStorage.removeItem("sidebarOpen");
                         window.location.href = "/";
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

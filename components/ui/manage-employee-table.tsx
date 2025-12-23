@@ -166,6 +166,11 @@ export default function ManageEmployeeTable({
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   useEffect(() => {
+    if (!searchTerm) {
+      setFilteredData(tableDetails);
+      return;
+    }
+
     const filtered = tableDetails.filter((item) => {
       const searchLower = searchTerm.toLowerCase();
 
@@ -183,6 +188,33 @@ export default function ManageEmployeeTable({
     setFilteredData(filtered);
   }, [searchTerm, filterBy, tableDetails]);
 
+  // Add this NEW useEffect BEFORE your existing one
+  useEffect(() => {
+    setFilteredData(tableDetails);
+  }, [tableDetails]);
+
+  useEffect(() => {
+    if (!searchTerm) {
+      setFilteredData(tableDetails);
+      return;
+    }
+
+    const filtered = tableDetails.filter((item) => {
+      const searchLower = searchTerm.toLowerCase();
+
+      if (filterBy === "name") {
+        return item.name.toLowerCase().includes(searchLower);
+      } else if (filterBy === "email") {
+        return item.email.toLowerCase().includes(searchLower);
+      } else {
+        return (
+          item.name.toLowerCase().includes(searchLower) ||
+          item.email.toLowerCase().includes(searchLower)
+        );
+      }
+    });
+    setFilteredData(filtered);
+  }, [searchTerm, filterBy, tableDetails]);
   const columnHelper = createColumnHelper<tableData>();
 
   const columns = [
