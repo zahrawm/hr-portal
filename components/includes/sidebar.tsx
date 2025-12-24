@@ -189,7 +189,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         <div className="flex h-full flex-col">
           {/* Main Menu Label */}
           {isOpen && (
-            <div className="px-4 pb-2 pt-4">
+            <div className="px-4 pb-2 pt-4 pl-7">
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
                 Main Menu
               </p>

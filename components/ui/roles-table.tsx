@@ -103,6 +103,19 @@ export default function RoleTable({
       console.error("Error fetching role titles:", error);
     }
   };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (openDropdownIndex !== null && !target.closest(".relative")) {
+        setOpenDropdownIndex(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdownIndex]);
 
   // Fetch role titles on component mount
   useEffect(() => {

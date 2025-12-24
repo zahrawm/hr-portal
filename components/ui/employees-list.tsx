@@ -166,6 +166,20 @@ export default function EmployeeListTable({
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (openDropdownIndex !== null && !target.closest(".relative")) {
+        setOpenDropdownIndex(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdownIndex]);
+
+  useEffect(() => {
     const filtered = tableDetails.filter((item) => {
       const searchLower = searchTerm.toLowerCase();
 
@@ -180,7 +194,7 @@ export default function EmployeeListTable({
         );
       }
     });
-    setFilteredData(filtered);
+    setFilteredData([...filtered].reverse());
   }, [searchTerm, filterBy, tableDetails]);
 
   const columnHelper = createColumnHelper<tableData>();
@@ -266,60 +280,6 @@ export default function EmployeeListTable({
       ),
       size: 120,
     }),
-    // columnHelper.accessor("actions", {
-    //   cell: (info) => (
-    //     <div className="relative flex items-center justify-start">
-    //       <button
-    //         onClick={() =>
-    //           setOpenDropdownIndex(
-    //             openDropdownIndex === info.row.index ? null : info.row.index
-    //           )
-    //         }
-    //         className="flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-    //       >
-    //         <Ellipsis className="h-5 w-5" />
-    //       </button>
-    //       {openDropdownIndex === info.row.index && (
-    //         <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
-    //           <button
-    //             onClick={() => {
-    //               handleEdit(info.row.original);
-    //               setOpenDropdownIndex(null);
-    //             }}
-    //             className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-    //           >
-    //             <img
-    //               src="../img/edit.svg"
-    //               className="h-4 w-4 text-green-50 dark:text-green-50"
-    //             />
-    //             Edit
-    //           </button>
-
-    //           <button
-    //             onClick={() => {
-    //               setShowDeleteModal(true);
-    //               setSelectedConflict(info.row.original);
-    //               setOpenDropdownIndex(null);
-    //             }}
-    //             className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-red-500 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-    //           >
-    //             <img
-    //               src="../img/bin.svg"
-    //               className="h-4 w-4 text-red-500 dark:text-red-500"
-    //             />
-    //             Delete
-    //           </button>
-    //         </div>
-    //       )}
-    //     </div>
-    //   ),
-    //   header: () => (
-    //     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-    //       Actions
-    //     </span>
-    //   ),
-    //   size: 80,
-    // }),
   ];
 
   const table = useReactTable<tableData>({

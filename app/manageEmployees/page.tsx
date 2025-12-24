@@ -70,7 +70,6 @@ const ManageEmployee: React.FC = () => {
 
       // Handle different response structures
       let employeeData = response.data;
-
       // If data is wrapped in an object (e.g., { data: [], success: true })
       if (response.data.data && Array.isArray(response.data.data)) {
         employeeData = response.data.data;
@@ -103,7 +102,7 @@ const ManageEmployee: React.FC = () => {
 
       console.log("Formatted data:", formattedData); // Debug log to see formatted data
 
-      setManageEmployees(formattedData);
+      setManageEmployees(formattedData.reverse());
     } catch (err: any) {
       console.error("Error fetching employees:", err);
       setError(err.response?.data?.message || "Failed to fetch employees");

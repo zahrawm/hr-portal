@@ -101,7 +101,19 @@ export default function UserTable({
       console.error("Error fetching departments:", error);
     }
   };
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (openDropdownIndex !== null && !target.closest(".relative")) {
+        setOpenDropdownIndex(null);
+      }
+    };
 
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [openDropdownIndex]);
   // Fetch departments on component mount
   useEffect(() => {
     fetchDepartments();
