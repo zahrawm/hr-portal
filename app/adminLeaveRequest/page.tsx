@@ -11,7 +11,6 @@ import { AppLayout } from "@/components/layout/app";
 import UserTable from "@/components/ui/table";
 import ManageEmployeeTable from "@/components/ui/manage-employee-table";
 import AddEmployeeForm from "@/components/layout/add-employee";
-import LeaveRequesTable from "@/components/ui/admin-leave-request-table";
 import { useRouter } from "next/navigation";
 import ManageLeaveRequestTable from "@/components/ui/manage-leave-request-table";
 
@@ -27,6 +26,13 @@ interface adminLeaveRequest {
   aprove?: string;
   deny?: string;
   view: string;
+  reason?: string;
+  startDate?: string;
+  endDate?: string;
+  daysCount?: number;
+  denialReason?: string;
+  employeeId?: any;
+  approverId?: any;
 }
 
 const AdminLeaveRequest: React.FC = () => {
@@ -84,7 +90,6 @@ const AdminLeaveRequest: React.FC = () => {
       }
 
       const result = await response.json();
-      console.log("API Response:", result);
 
       let requestsArray = result;
 
@@ -93,6 +98,7 @@ const AdminLeaveRequest: React.FC = () => {
       } else if (!Array.isArray(requestsArray)) {
         requestsArray = [];
       }
+
       const transformedData = requestsArray.map((request: any) => ({
         _id: request._id || request.id,
         name: request.employeeId?.name || "Unknown",
@@ -103,14 +109,22 @@ const AdminLeaveRequest: React.FC = () => {
         aprove: "",
         deny: "",
         view: "",
+        reason: request.reason,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        daysCount: request.daysCount,
+        denialReason: request.denialReason,
+        employeeId: request.employeeId,
+        approverId: request.approverId,
       }));
-      console.log("Transformed data:", transformedData);
 
       setManageLeaveRequests(transformedData);
-    } catch (err: any) {
+      setIsLoading(false);
+    } catch (err) {
       console.error("Error fetching leave requests:", err);
-      setError(err.message || "Failed to fetch leave requests");
-    } finally {
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       setIsLoading(false);
     }
   };
@@ -234,7 +248,7 @@ const AdminLeaveRequest: React.FC = () => {
               Error Loading Leave Requests
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
-              {error}
+              Unable to load leave requests. Please try again.
             </p>
             <button
               onClick={fetchLeaveRequests}
