@@ -137,33 +137,58 @@ export default function RoleTable({
   };
 
   const handleDelete = async () => {
-    if (!selectedConflict?._id) return;
+    if (!selectedConflict?._id) {
+      console.log("No role selected");
+      return;
+    }
 
     try {
-      // Get token from localStorage
+      console.log("Deleting role:", selectedConflict);
       const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.error("No token found");
+        setToastMessage("Authentication required. Please login again.");
+        setShowToast(true);
+        closeModal();
+        return;
+      }
 
       const response = await fetch("/api/role-titles", {
         method: "DELETE",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: JSON.stringify({ id: selectedConflict._id }),
       });
 
       const result = await response.json();
+      console.log("Delete response:", result);
 
-      if (result.success) {
-        await fetchRoleTitles(); // Refresh the list
+      if (response.status === 401 || response.status === 403) {
+        setToastMessage("Unauthorized: Admin access only");
+        setShowToast(true);
+        closeModal();
+        return;
+      }
+
+      if (result.success || response.ok) {
+        await fetchRoleTitles();
         closeModal();
         setToastMessage("Role Deleted Successfully");
         setShowToast(true);
       } else {
-        // alert(`Error: ${result.error}`);
+        console.error("Delete failed:", result);
+        setToastMessage(`Error: ${result.error || "Failed to delete role"}`);
+        setShowToast(true);
+        closeModal();
       }
     } catch (error: any) {
-      /// alert(`Error: ${error.message}`);
+      console.error("Delete error:", error);
+      setToastMessage(`Error: ${error.message}`);
+      setShowToast(true);
+      closeModal();
     }
   };
 

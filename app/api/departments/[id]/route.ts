@@ -197,6 +197,7 @@ export async function DELETE(
       );
     }
 
+    // STRICT CHECK: Only ADMIN role can delete departments
     // Check if user is admin
     if (!hasRole(authResult.user.roles, ["ADMIN"])) {
       return NextResponse.json(

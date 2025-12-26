@@ -134,33 +134,60 @@ export default function UserTable({
   };
 
   const handleDelete = async () => {
-    if (!selectedConflict?._id) return;
+    if (!selectedConflict?._id) {
+      console.log("No department selected");
+      return;
+    }
 
     try {
-      // Get token from localStorage or wherever you store it
-      const token = localStorage.getItem("token"); // Adjust this based on where you store the token
+      console.log("Deleting department:", selectedConflict);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        console.error("No token found");
+        setToastMessage("Authentication required. Please login again.");
+        setShowToast(true);
+        closeModal();
+        return;
+      }
 
       const response = await fetch("/api/departments", {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${token}`, // Add Authorization header
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ id: selectedConflict._id }),
       });
 
       const result = await response.json();
+      console.log("Delete response:", result);
 
-      if (result.success) {
-        await fetchDepartments(); // Refresh the list
+      if (response.status === 401 || response.status === 403) {
+        setToastMessage("Unauthorized: Admin access only");
+        setShowToast(true);
+        closeModal();
+        return;
+      }
+
+      if (result.success || response.ok) {
+        await fetchDepartments();
         closeModal();
         setToastMessage("Department Deleted Successfully");
         setShowToast(true);
       } else {
-        // alert(`Error: ${result.error}`);
+        console.error("Delete failed:", result);
+        setToastMessage(
+          `Error: ${result.error || "Failed to delete department"}`
+        );
+        setShowToast(true);
+        closeModal();
       }
     } catch (error: any) {
-      // alert(`Error: ${error.message}`);
+      console.error("Delete error:", error);
+      setToastMessage(`Error: ${error.message}`);
+      setShowToast(true);
+      closeModal();
     }
   };
   const handleEditSuccess = async () => {

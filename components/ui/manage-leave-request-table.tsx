@@ -360,6 +360,42 @@ export default function ManageLeaveRequestTable({
       ),
       size: 300,
     }),
+    columnHelper.accessor("status", {
+      cell: (info) => (
+        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              info.getValue() === "APPROVED"
+                ? "bg-green-500"
+                : info.getValue() === "REJECTED"
+                ? "bg-red-500"
+                : info.getValue() === "PENDING"
+                ? "bg-yellow-500"
+                : "bg-gray-300 dark:bg-gray-600"
+            }`}
+          ></span>
+          <span
+            className={`text-sm font-medium ${
+              info.getValue() === "APPROVED"
+                ? "text-green-700 dark:text-green-400"
+                : info.getValue() === "REJECTED"
+                ? "text-red-700 dark:text-red-400"
+                : info.getValue() === "PENDING"
+                ? "text-yellow-700 dark:text-yellow-400"
+                : "text-gray-400 dark:text-gray-500"
+            }`}
+          >
+            {info.getValue()}
+          </span>
+        </button>
+      ),
+      header: () => (
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          Status
+        </span>
+      ),
+      size: 120,
+    }),
     columnHelper.accessor("view", {
       cell: (info) => {
         const row = info.row.original;
