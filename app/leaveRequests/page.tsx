@@ -170,8 +170,8 @@ const LeaveRequestContent: React.FC = () => {
     <AppLayout>
       {showToast && (
         <div className="fixed top-6 right-6 z-50">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
-            <span className="flex-1">Leave Summitted Successfully</span>
+          <div className="bg-green-600 text-white  x-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
+            <span className="flex-1">Leave Submitted Successfully</span>
             <button
               onClick={() => setShowToast(false)}
               className="hover:bg-green-700 rounded p-1 transition-colors"

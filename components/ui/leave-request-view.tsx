@@ -113,7 +113,7 @@ export default function LeaveRequestDetail() {
       setShowDenyModal(false);
 
       setTimeout(() => {
-        router.push("/leave-requests");
+        router.push("/leave-request-view");
       }, 1500);
     } catch (error) {
       console.error("Error denying leave request:", error);

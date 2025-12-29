@@ -128,6 +128,62 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   const [employee, setEmployee] = useState<any>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
+
+  // Check authentication IMMEDIATELY on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("token");
+      const user = localStorage.getItem("user");
+
+      if (!token || !user) {
+        // Redirect immediately without setting any state
+        window.location.href = "/";
+        return;
+      }
+      setIsAuthenticated(true);
+      setIsChecking(false);
+    }
+  }, []);
+
+  // Check authentication on pathname change
+  useEffect(() => {
+    const checkAuth = () => {
+      if (typeof window !== "undefined") {
+        const token = localStorage.getItem("token");
+        const user = localStorage.getItem("user");
+
+        if (!token || !user) {
+          window.location.href = "/";
+          return false;
+        }
+        return true;
+      }
+      return false;
+    };
+
+    // Add event listener for browser back/forward navigation
+    const handlePopState = () => {
+      checkAuth();
+    };
+
+    window.addEventListener("popstate", handlePopState);
+
+    // Check authentication on page visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkAuth();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [pathname]);
 
   // Load user from localStorage and restore sidebar state
   useEffect(() => {
@@ -158,6 +214,11 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       link.roles.some((role) => userRoles.includes(role))
     );
   }, [userRoles]);
+
+  // Don't render sidebar if not authenticated
+  if (!isAuthenticated || isChecking) {
+    return null;
+  }
 
   return (
     <>
@@ -296,10 +357,9 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                   <div className="py-1 border-t border-gray-200 dark:border-gray-700">
                     <button
                       onClick={() => {
-                        localStorage.removeItem("user");
-                        localStorage.removeItem("token");
-                        localStorage.removeItem("userId");
-                        localStorage.removeItem("sidebarOpen");
+                        localStorage.clear();
+
+                        // Immediate redirect without any delay
                         window.location.href = "/";
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

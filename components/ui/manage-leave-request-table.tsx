@@ -648,7 +648,7 @@ export default function ManageLeaveRequestTable({
             className="absolute inset-0 bg-black opacity-50"
             onClick={closeModal}
           ></div>
-          <div className="relative z-[60] h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-slide-in-right">
+          <div className="relative z-[60] h-full w-full max-w-2xl bg-white dark:bg-gray-900 shadow-2xl overflow-y-auto animate-slide-in-right">
             <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 px-6 py-4">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Leave Request Details
@@ -794,20 +794,20 @@ export default function ManageLeaveRequestTable({
 
               {selectedRequest.status === "PENDING" && (
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={handleApprove}
-                      disabled={isProcessing}
-                      className="w-full flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-3 text-sm font-medium text-white hover:bg-[#029858] disabled:opacity-50 transition-colors"
-                    >
-                      {isProcessing ? "Processing..." : "Approve Leave Request"}
-                    </button>
+                  <div className="flex flex-row gap-3">
                     <button
                       onClick={handleDeny}
                       disabled={isProcessing}
-                      className="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
+                      className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 transition-colors"
                     >
                       {isProcessing ? "Processing..." : "Deny Leave Request"}
+                    </button>
+                    <button
+                      onClick={handleApprove}
+                      disabled={isProcessing}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-3 text-sm font-medium text-white hover:bg-[#029858] disabled:opacity-50 transition-colors"
+                    >
+                      {isProcessing ? "Processing..." : "Approve Leave Request"}
                     </button>
                   </div>
                 </div>

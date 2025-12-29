@@ -15,7 +15,6 @@ const SubmitLeaveForm: React.FC = () => {
   const [dateRange, setDateRange] = useState("");
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
-  const [showToast, setShowToast] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
