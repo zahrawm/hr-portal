@@ -38,10 +38,12 @@ type tableData = {
 
 interface TableProps {
   tableDetails: tableData[];
+  onRefresh?: () => void;
 }
 
 export default function UserTable({
   tableDetails: initialTableDetails,
+  onRefresh,
 }: TableProps) {
   const [tableDetails, setTableDetails] = useState<tableData[]>([]);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -550,12 +552,14 @@ export default function UserTable({
               </button>
 
               <button
-                onClick={async () => {
-                  await fetchDepartments();
-                  setToastMessage("Data Refreshed Successfully");
-                  setShowToast(true);
+                onClick={() => {
+                  if (onRefresh) {
+                    onRefresh();
+                  } else {
+                    window.location.reload();
+                  }
                 }}
-                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto sm:ml-auto rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center gap-2"
               >
                 <svg
                   className="h-4 w-4"
