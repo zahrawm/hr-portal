@@ -432,7 +432,7 @@ const AttendanceTable = () => {
         header: "Status",
         cell: (info) => {
           return (
-            <button className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md w-24">
               <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                 Active

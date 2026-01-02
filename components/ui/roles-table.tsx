@@ -296,7 +296,7 @@ export default function RoleTable({
     }),
     columnHelper.accessor("status", {
       cell: (info) => (
-        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md">
+        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md w-24">
           <span
             className={`h-2 w-2 rounded-full ${
               info.getValue() === "Active"
@@ -336,7 +336,13 @@ export default function RoleTable({
             <Ellipsis className="h-5 w-5" />
           </button>
           {openDropdownIndex === info.row.index && (
-            <div className="absolute right-0 top-8 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg">
+            <div
+              className={`absolute right-0 z-10 w-40 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg ${
+                info.row.index >= table.getRowModel().rows.length - 2
+                  ? "bottom-8"
+                  : "top-8"
+              }`}
+            >
               <button
                 onClick={() => {
                   setShowEditRowViewModal(true);

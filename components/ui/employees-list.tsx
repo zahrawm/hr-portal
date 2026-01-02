@@ -254,7 +254,7 @@ export default function EmployeeListTable({
     }),
     columnHelper.accessor("status", {
       cell: (info) => (
-        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md">
+        <button className="flex items-center gap-2 bg-white dark:bg-gray-800 px-3 py-1.5 rounded-md w-24">
           <span
             className={`h-2 w-2 rounded-full ${
               info.getValue() === "Active"
