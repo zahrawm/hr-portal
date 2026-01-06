@@ -37,6 +37,14 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navLinks: NavLink[] = [
+    // {
+    //   href: "/department",
+    //   label: "Department",
+    //   icon: "../img/department.svg",
+    //   isImage: true,
+    //   activeKey: "department",
+    //   roles: ["ADMIN", "MANAGER"],
+    // },
     {
       href: "/department",
       label: "Department",
