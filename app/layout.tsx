@@ -1,6 +1,7 @@
-import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
+
 import "./globals.css";
+import SessionProvider from "@/components/ui/SessionProvider";
 
 export default function RootLayout({
   children,
@@ -8,13 +9,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-    >
-      <>
-        <html lang="en" suppressHydrationWarning>
-          <head />
-          <body>
+    <>
+      <html lang="en" suppressHydrationWarning>
+        <head />
+        <body>
+          <SessionProvider>
             <ThemeProvider
               attribute="class"
               defaultTheme="system"
@@ -23,9 +22,9 @@ export default function RootLayout({
             >
               {children}
             </ThemeProvider>
-          </body>
-        </html>
-      </>
-    </ClerkProvider>
+          </SessionProvider>
+        </body>
+      </html>
+    </>
   );
 }
