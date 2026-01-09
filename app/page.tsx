@@ -4,11 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ModeToggle } from "@/components/theme/ThemeSwitcher";
 import axios from "axios";
-import GoogleButton from "@/components/ui/googleButton";
+
 import { useSession } from "next-auth/react";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 
 export default function SignupForm() {
-  const { data: session } = useSession();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -414,14 +414,15 @@ export default function SignupForm() {
             </svg>
             Sign in with Google
           </button> */}
-          <GoogleButton />
+          <GoogleLogin
+            onSuccess={(credentialResponse: CredentialResponse) => {
+              console.log(credentialResponse);
+            }}
+            onError={() => {
+              console.log("Login Failed");
+            }}
+          />
 
-          {session && (
-            <div>
-              <p>User: {session.user?.name}</p>
-              <p>Email: {session.user?.email}</p>
-            </div>
-          )}
           <h3
             onClick={() => router.push("/login")}
             className="text-[#02AA69] text-center cursor-pointer"

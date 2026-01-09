@@ -508,4 +508,3 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
 };
 
 export default AttendanceTable;
- 
