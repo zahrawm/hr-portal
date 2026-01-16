@@ -1,432 +1,503 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import {
-  ChevronDown,
-  Calendar,
-  X,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { AppLayout } from "@/components/layout/app";
+
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { ModeToggle } from "@/components/theme/ThemeSwitcher";
+import axios from "axios";
+import { useSession } from "next-auth/react";
+import { SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
 
-const SubmitLeaveForm: React.FC = () => {
+export default function SignupForm() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const { isSignedIn, user, isLoaded } = useUser();
-  const { getToken, isLoaded: authLoaded } = useAuth();
-  const [dateRange, setDateRange] = useState("");
-  const [leaveType, setLeaveType] = useState("");
-  const [reason, setReason] = useState("");
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
-  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authToken, setAuthToken] = useState<string | null>(null);
+  const hasRedirected = useRef(false);
+  const hasRegistered = useRef(false);
 
-  const monthNames = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
 
-  // Get authentication token on mount
+  // Register Clerk user with backend and redirect
   useEffect(() => {
-    const getAuthToken = async () => {
-      // First check localStorage for regular login token
-      const localToken = localStorage.getItem("token");
-      if (localToken) {
-        setAuthToken(localToken);
-        console.log("Using localStorage token");
-        return;
-      }
+    const registerClerkUser = async () => {
+      if (
+        isLoaded &&
+        isSignedIn &&
+        user &&
+        !hasRegistered.current &&
+        !hasRedirected.current
+      ) {
+        hasRegistered.current = true;
 
-      // If no localStorage token and Clerk is loaded, try to get Clerk token
-      if (authLoaded && isSignedIn) {
+        console.log("Clerk user signed in, registering with backend...");
+
         try {
-          const clerkToken = await getToken();
-          if (clerkToken) {
-            setAuthToken(clerkToken);
-            console.log("Using Clerk token");
-          } else {
-            console.error("Clerk sign in detected but no token available");
+          // Generate a random password for Clerk users
+          const randomPassword = `Clerk_${user.id}_${Date.now()}`;
+
+          const payload = {
+            email: user.primaryEmailAddress?.emailAddress,
+            password: randomPassword,
+            confirmPassword: randomPassword,
+            clerkId: user.id,
+          };
+
+          const response = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_URL}auth/signup`,
+            payload
+          );
+
+          console.log("Backend registration response:", response.data);
+
+          if (response.data.success) {
+            // Store token in localStorage
+            localStorage.setItem("token", response.data.token);
+            localStorage.setItem("user", JSON.stringify(response.data.user));
+            localStorage.setItem(
+              "userId",
+              response.data.user._id || response.data.user.id
+            );
+
+            console.log("✅ Backend registration successful, redirecting...");
+            hasRedirected.current = true;
+            router.push("/leaveRequests");
           }
-        } catch (error) {
-          console.error("Error getting Clerk token:", error);
+        } catch (error: any) {
+          console.error("Backend registration error:", error);
+
+          // If user already exists, try to login instead
+          if (
+            error.response?.status === 400 ||
+            error.response?.data?.message?.includes("already exists")
+          ) {
+            console.log("User already exists, attempting login...");
+
+            // For existing users, just redirect (they should have token already)
+            hasRedirected.current = true;
+            router.push("/leaveRequests");
+          }
         }
       }
     };
 
-    getAuthToken();
-  }, [isSignedIn, authLoaded, getToken]);
+    registerClerkUser();
+  }, [isSignedIn, isLoaded, user, router]);
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
-
-    const days = [];
-    // Previous month days
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      const prevMonthDay = new Date(year, month, -startingDayOfWeek + i + 1);
-      days.push({ date: prevMonthDay, isCurrentMonth: false });
-    }
-    // Current month days
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
-    }
-    // Next month days
-    const remainingDays = 42 - days.length;
-    for (let i = 1; i <= remainingDays; i++) {
-      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
-    }
-    return days;
-  };
-
-  const handleDateClick = (date: Date) => {
-    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
-      setSelectedStartDate(date);
-      setSelectedEndDate(null);
-    } else if (selectedStartDate && !selectedEndDate) {
-      if (date >= selectedStartDate) {
-        setSelectedEndDate(date);
-        const start = selectedStartDate.toLocaleDateString();
-        const end = date.toLocaleDateString();
-        setDateRange(`${start} - ${end}`);
-        setShowCalendar(false);
-      } else {
-        setSelectedStartDate(date);
-        setSelectedEndDate(null);
-      }
+  const validateEmail = (value: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!value) {
+      setEmailError("");
+      return false;
+    } else if (!emailRegex.test(value)) {
+      setEmailError('Kindly provide a valid email "you@gmail.com"');
+      return false;
+    } else {
+      setEmailError("");
+      return true;
     }
   };
 
-  const isDateInRange = (date: Date) => {
-    if (!selectedStartDate) return false;
-    if (!selectedEndDate)
-      return date.toDateString() === selectedStartDate.toDateString();
-    return date >= selectedStartDate && date <= selectedEndDate;
+  const validatePassword = (value: string) => {
+    if (!value) {
+      setPasswordError("");
+      return false;
+    } else if (value.length < 3) {
+      setPasswordError("This is an invalid password.");
+      return false;
+    } else {
+      setPasswordError("");
+      return true;
+    }
   };
 
-  const previousMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
-    );
+  const validateConfirmPassword = (value: string) => {
+    if (!value) {
+      setConfirmPasswordError("");
+      return false;
+    } else if (value !== password) {
+      setConfirmPasswordError("Passwords do not match.");
+      return false;
+    } else {
+      setConfirmPasswordError("");
+      return true;
+    }
   };
 
-  const nextMonth = () => {
-    setCurrentMonth(
-      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
-    );
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    if (emailTouched) {
+      validateEmail(value);
+    }
   };
 
-  const handleSubmit = async () => {
-    // Validation
-    if (!dateRange) {
-      alert("Please select a date range");
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPassword(value);
+    if (passwordError) {
+      validatePassword(value);
+    }
+    if (confirmPassword) {
+      validateConfirmPassword(confirmPassword);
+    }
+  };
+
+  const handleConfirmPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    setConfirmPassword(value);
+    if (confirmPasswordError) {
+      validateConfirmPassword(value);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+    const isConfirmPasswordValid = validateConfirmPassword(confirmPassword);
+
+    if (!isEmailValid || !isPasswordValid || !isConfirmPasswordValid) {
       return;
     }
 
-    if (!reason.trim()) {
-      alert("Please provide a reason");
-      return;
-    }
-
-    if (reason.trim().length < 10) {
-      alert("Reason must be at least 10 characters long");
-      return;
-    }
-
-    if (!selectedStartDate || !selectedEndDate) {
-      alert("Please select both start and end dates");
-      return;
-    }
-
-    setIsSubmitting(true);
+    setIsLoading(true);
 
     try {
-      // Get fresh token
-      let token = authToken;
-
-      // Try to get a fresh Clerk token if user is signed in with Clerk
-      if (isSignedIn && authLoaded) {
-        try {
-          const freshClerkToken = await getToken();
-          if (freshClerkToken) {
-            token = freshClerkToken;
-            console.log("Using fresh Clerk token for submission");
-          }
-        } catch (err) {
-          console.error("Error getting fresh Clerk token:", err);
-        }
-      }
-
-      // Final check for token
-      if (!token) {
-        alert("Authentication required. Please log in again.");
-        router.push("/login");
-        return;
-      }
-
-      const requestData = {
-        startDate: selectedStartDate.toISOString(),
-        endDate: selectedEndDate.toISOString(),
-        reason: reason.trim(),
-        status: "PENDING",
+      const payload = {
+        email,
+        password,
+        confirmPassword,
       };
 
-      console.log("Submitting leave request...");
-      console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
-      console.log("Request data:", requestData);
-      console.log("Token available:", !!token);
-
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(requestData),
-        }
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}auth/signup`,
+        payload
       );
 
-      console.log("Response status:", response.status);
-      console.log("Response OK:", response.ok);
+      console.log(response.data);
+      if (response.data.success) {
+        // Store token in localStorage
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data.user));
 
-      if (!response.ok) {
-        let errorMessage = `Server error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.error || errorData.message || errorMessage;
-          console.error("Error response data:", errorData);
-        } catch (e) {
-          console.error("Could not parse error response");
+        // Store user ID separately for filtering attendance
+        localStorage.setItem(
+          "userId",
+          response.data.user._id || response.data.user.id
+        );
+
+        // Navigate based on user role
+        const userRole = response.data.user?.role;
+        const role = Array.isArray(userRole) ? userRole[0] : userRole;
+
+        if (role === "EMPLOYEE" || role === "employee") {
+          router.push("/leaveRequests");
+        } else if (role === "MANAGER" || role === "manager") {
+          router.push("/department");
+        } else if (role === "ADMIN" || role === "admin") {
+          router.push("/department");
+        } else {
+          router.push("/leaveRequests"); // Default fallback
         }
-        throw new Error(errorMessage);
       }
-
-      const data = await response.json();
-      console.log("Leave request submitted successfully:", data);
-
-      // Clear form
-      setDateRange("");
-      setReason("");
-      setSelectedStartDate(null);
-      setSelectedEndDate(null);
-
-      // Navigate back to Leave Request page with success flag
-      router.push("/leaveRequests?success=true");
     } catch (error: any) {
-      console.error("Error submitting leave request:", error);
-      alert(
-        `Failed to submit leave request: ${error.message}\n\nPlease check your internet connection and try again. If the problem persists, try logging out and logging back in.`
-      );
+      console.log(error);
+
+      // Display error message
+      if (error.response?.data?.message) {
+        setPasswordError(error.response.data.message);
+      } else {
+        setPasswordError("Signup failed. Please try again.");
+      }
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <AppLayout>
-      <div className="min-h-screen bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
-        {/* Breadcrumb */}
-        <div className="mb-6 sm:mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-            <span
-              onClick={() => router.push("/leaveRequests")}
-              className="hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4 relative">
+      {/* Fixed ModeToggle at top right corner */}
+      <div className="fixed top-4 right-4 z-50">
+        <ModeToggle />
+      </div>
+
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Create your account
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Welcome! Please enter your details to sign up.
+          </p>
+        </div>
+
+        <div className="space-y-5">
+          <div>
+            <label
+              htmlFor="email"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
             >
-              Leave Request
-            </span>
-            <span>&gt;</span>
-            <span className="text-gray-900 dark:text-white font-medium">
-              Submit Leave
-            </span>
+              Email
+            </label>
+            <input
+              type="text"
+              id="email"
+              value={email}
+              onChange={handleEmailChange}
+              onBlur={() => {
+                setEmailTouched(true);
+                validateEmail(email);
+              }}
+              placeholder="abena@gmail.com"
+              disabled={isLoading}
+              className={`w-full px-3.5 py-2.5 border ${
+                emailError
+                  ? "border-red-500"
+                  : "border-gray-300 dark:border-gray-600"
+              } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 placeholder:text-gray-400 dark:placeholder:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed`}
+            />
+            {emailError && (
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                {emailError}
+              </p>
+            )}
           </div>
-        </div>
 
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center">
-                <img
-                  src="../img/leave.svg"
-                  alt="Department Icon"
-                  className="h-8 w-8 dark:brightness-0 dark:invert"
-                />
-              </div>
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
-                Submit Leave
-              </h1>
-              {isSignedIn && user && (
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Logged in as: {user.primaryEmailAddress?.emailAddress}
-                </p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Form */}
-        <div className="max-w-6xl">
-          {/* Date Range Field */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-              Date range
+          <div>
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+            >
+              Password
             </label>
             <div className="relative">
               <input
-                type="text"
-                value={dateRange}
-                onClick={() => setShowCalendar(!showCalendar)}
-                placeholder="Select a date range"
-                readOnly
-                className="w-full px-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm cursor-pointer"
+                type={showPassword ? "text" : "password"}
+                id="password"
+                value={password}
+                onChange={handlePasswordChange}
+                onBlur={() => validatePassword(password)}
+                placeholder="••••••••"
+                disabled={isLoading}
+                className={`w-full px-3.5 py-2.5 pr-10 border ${
+                  passwordError
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed`}
               />
-              <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
-
-              {/* Calendar Popup */}
-              {showCalendar && (
-                <div className="absolute z-10 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 w-full sm:w-96">
-                  {/* Calendar Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={previousMonth}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
-                    <span className="text-base font-semibold text-gray-900 dark:text-white">
-                      {monthNames[currentMonth.getMonth()]}{" "}
-                      {currentMonth.getFullYear()}
-                    </span>
-                    <button
-                      onClick={nextMonth}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                    >
-                      <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                    </button>
-                  </div>
-
-                  {/* Day Names */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {dayNames.map((day, index) => (
-                      <div
-                        key={`day-name-${index}`}
-                        className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2"
-                      >
-                        {day}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Calendar Days */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {getDaysInMonth(currentMonth).map((day, index) => {
-                      const isInRange = isDateInRange(day.date);
-                      const isStart =
-                        selectedStartDate &&
-                        day.date.toDateString() ===
-                          selectedStartDate.toDateString();
-                      const isEnd =
-                        selectedEndDate &&
-                        day.date.toDateString() ===
-                          selectedEndDate.toDateString();
-
-                      return (
-                        <button
-                          key={`calendar-day-${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}-${index}`}
-                          onClick={() => handleDateClick(day.date)}
-                          className={`
-                            p-2 text-sm rounded-lg transition-colors
-                            ${
-                              !day.isCurrentMonth
-                                ? "text-gray-300 dark:text-gray-600"
-                                : "text-gray-900 dark:text-white"
-                            }
-                            ${
-                              isInRange
-                                ? "bg-emerald-100 dark:bg-emerald-900/30"
-                                : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }
-                            ${
-                              isStart || isEnd
-                                ? "bg-emerald-500 text-white hover:bg-emerald-600"
-                                : ""
-                            }
-                          `}
-                        >
-                          {day.date.getDate()}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+              >
+                {showPassword ? (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
             </div>
+            {passwordError && (
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                {passwordError}
+              </p>
+            )}
           </div>
 
-          {/* Reason Field */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
-              Reason
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+            >
+              Confirm Password
             </label>
-            <textarea
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Type your reason here."
-              rows={2}
-              className="w-full px-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm resize-none"
-            />
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={handleConfirmPasswordChange}
+                onBlur={() => validateConfirmPassword(confirmPassword)}
+                placeholder="••••••••"
+                disabled={isLoading}
+                className={`w-full px-3.5 py-2.5 pr-10 border ${
+                  confirmPasswordError
+                    ? "border-red-500"
+                    : "border-gray-300 dark:border-gray-600"
+                } rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent text-gray-900 dark:text-white dark:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={isLoading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+              >
+                {showConfirmPassword ? (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                )}
+              </button>
+            </div>
+            {confirmPasswordError && (
+              <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">
+                {confirmPasswordError}
+              </p>
+            )}
           </div>
 
-          {/* Debug Info (remove in production) */}
-          {process.env.NODE_ENV === "development" && (
-            <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
-              <p className="font-semibold mb-2">Debug Info:</p>
-              <p>Clerk Loaded: {isLoaded ? "Yes" : "No"}</p>
-              <p>Auth Loaded: {authLoaded ? "Yes" : "No"}</p>
-              <p>Signed In: {isSignedIn ? "Yes" : "No"}</p>
-              <p>Has Token: {authToken ? "Yes" : "No"}</p>
-              <p>API URL: {process.env.NEXT_PUBLIC_API_URL || "Not set"}</p>
-            </div>
-          )}
-
-          {/* Submit Button */}
           <button
+            type="submit"
             onClick={handleSubmit}
-            disabled={isSubmitting || !authToken}
-            className="w-full px-6 py-3 sm:py-3.5 bg-emerald-500 dark:bg-emerald-600 text-white rounded-lg hover:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors font-medium text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            {isSubmitting
-              ? "Submitting..."
-              : !authToken
-              ? "Loading authentication..."
-              : "Submit Leave"}
+            {isLoading ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Signing up...
+              </>
+            ) : (
+              "Sign up"
+            )}
           </button>
+
+          <div className="text-center">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+              Or continue with
+            </p>
+            {isSignedIn ? (
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  Signed in as {user?.firstName} - Setting up your account...
+                </p>
+                <SignOutButton />
+              </div>
+            ) : (
+              <SignInButton mode="modal">
+                <button className="w-full flex items-center justify-center gap-2 border border-gray-300 dark:border-gray-600 rounded-lg py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path
+                      fill="currentColor"
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    />
+                    <path
+                      fill="currentColor"
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    />
+                  </svg>
+                  Sign up with Google
+                </button>
+              </SignInButton>
+            )}
+          </div>
+
+          <h3
+            onClick={() => router.push("/login")}
+            className="text-[#02AA69] text-center cursor-pointer"
+          >
+            Already have an account? Sign in
+          </h3>
         </div>
       </div>
-    </AppLayout>
+    </div>
   );
-};
-
-export default SubmitLeaveForm;
+}
