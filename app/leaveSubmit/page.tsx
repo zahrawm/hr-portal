@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ChevronDown,
   Calendar,
@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/app";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 const SubmitLeaveForm: React.FC = () => {
   const router = useRouter();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, user, isLoaded } = useUser();
+  const { getToken, isLoaded: authLoaded } = useAuth();
   const [dateRange, setDateRange] = useState("");
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
@@ -22,6 +23,7 @@ const SubmitLeaveForm: React.FC = () => {
   const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
   const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [authToken, setAuthToken] = useState<string | null>(null);
 
   const monthNames = [
     "January",
@@ -38,6 +40,36 @@ const SubmitLeaveForm: React.FC = () => {
     "December",
   ];
   const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+
+  // Get authentication token on mount
+  useEffect(() => {
+    const getAuthToken = async () => {
+      // First check localStorage for regular login token
+      const localToken = localStorage.getItem("token");
+      if (localToken) {
+        setAuthToken(localToken);
+        console.log("Using localStorage token");
+        return;
+      }
+
+      // If no localStorage token and Clerk is loaded, try to get Clerk token
+      if (authLoaded && isSignedIn) {
+        try {
+          const clerkToken = await getToken();
+          if (clerkToken) {
+            setAuthToken(clerkToken);
+            console.log("Using Clerk token");
+          } else {
+            console.error("Clerk sign in detected but no token available");
+          }
+        } catch (error) {
+          console.error("Error getting Clerk token:", error);
+        }
+      }
+    };
+
+    getAuthToken();
+  }, [isSignedIn, authLoaded, getToken]);
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -105,30 +137,48 @@ const SubmitLeaveForm: React.FC = () => {
   const handleSubmit = async () => {
     // Validation
     if (!dateRange) {
+      alert("Please select a date range");
       return;
     }
 
     if (!reason.trim()) {
+      alert("Please provide a reason");
       return;
     }
 
     if (reason.trim().length < 10) {
+      alert("Reason must be at least 10 characters long");
+      return;
+    }
+
+    if (!selectedStartDate || !selectedEndDate) {
+      alert("Please select both start and end dates");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Get the token from localStorage OR check if user is signed in with Clerk
-      const token = localStorage.getItem("token");
+      // Get fresh token
+      let token = authToken;
 
-      // If no token and not signed in with Clerk, redirect to login
-      if (!token && !isSignedIn) {
-        router.push("/login");
-        return;
+      // Try to get a fresh Clerk token if user is signed in with Clerk
+      if (isSignedIn && authLoaded) {
+        try {
+          const freshClerkToken = await getToken();
+          if (freshClerkToken) {
+            token = freshClerkToken;
+            console.log("Using fresh Clerk token for submission");
+          }
+        } catch (err) {
+          console.error("Error getting fresh Clerk token:", err);
+        }
       }
 
-      if (!selectedStartDate || !selectedEndDate) {
+      // Final check for token
+      if (!token) {
+        alert("Authentication required. Please log in again.");
+        router.push("/login");
         return;
       }
 
@@ -139,43 +189,53 @@ const SubmitLeaveForm: React.FC = () => {
         status: "PENDING",
       };
 
-      console.log("Sending request data:", requestData);
-
-      // Prepare headers - only include Authorization if token exists
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
+      console.log("Submitting leave request...");
+      console.log("API URL:", process.env.NEXT_PUBLIC_API_URL);
+      console.log("Request data:", requestData);
+      console.log("Token available:", !!token);
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
         {
           method: "POST",
-          headers,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
           body: JSON.stringify(requestData),
-          credentials: "include", // Include cookies for Clerk session
         }
       );
 
       console.log("Response status:", response.status);
-
-      const data = await response.json();
+      console.log("Response OK:", response.ok);
 
       if (!response.ok) {
-        throw new Error(data.error || "Failed to submit leave request");
+        let errorMessage = `Server error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error("Error response data:", errorData);
+        } catch (e) {
+          console.error("Could not parse error response");
+        }
+        throw new Error(errorMessage);
       }
 
+      const data = await response.json();
       console.log("Leave request submitted successfully:", data);
+
+      // Clear form
+      setDateRange("");
+      setReason("");
+      setSelectedStartDate(null);
+      setSelectedEndDate(null);
 
       // Navigate back to Leave Request page with success flag
       router.push("/leaveRequests?success=true");
     } catch (error: any) {
       console.error("Error submitting leave request:", error);
       alert(
-        error.message || "Failed to submit leave request. Please try again."
+        `Failed to submit leave request: ${error.message}\n\nPlease check your internet connection and try again. If the problem persists, try logging out and logging back in.`
       );
     } finally {
       setIsSubmitting(false);
@@ -217,6 +277,11 @@ const SubmitLeaveForm: React.FC = () => {
               <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
                 Submit Leave
               </h1>
+              {isSignedIn && user && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Logged in as: {user.primaryEmailAddress?.emailAddress}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -334,13 +399,29 @@ const SubmitLeaveForm: React.FC = () => {
             />
           </div>
 
+          {/* Debug Info (remove in production) */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mb-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs">
+              <p className="font-semibold mb-2">Debug Info:</p>
+              <p>Clerk Loaded: {isLoaded ? "Yes" : "No"}</p>
+              <p>Auth Loaded: {authLoaded ? "Yes" : "No"}</p>
+              <p>Signed In: {isSignedIn ? "Yes" : "No"}</p>
+              <p>Has Token: {authToken ? "Yes" : "No"}</p>
+              <p>API URL: {process.env.NEXT_PUBLIC_API_URL || "Not set"}</p>
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !authToken}
             className="w-full px-6 py-3 sm:py-3.5 bg-emerald-500 dark:bg-emerald-600 text-white rounded-lg hover:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors font-medium text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Submitting..." : "Submit Leave"}
+            {isSubmitting
+              ? "Submitting..."
+              : !authToken
+              ? "Loading authentication..."
+              : "Submit Leave"}
           </button>
         </div>
       </div>
