@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/app";
 import { useRouter } from "next/navigation";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 const SubmitLeaveForm: React.FC = () => {
   const router = useRouter();
   const { isSignedIn, user } = useUser();
+  const { getToken } = useAuth(); // Add this to get Clerk token
   const [dateRange, setDateRange] = useState("");
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
@@ -105,30 +106,40 @@ const SubmitLeaveForm: React.FC = () => {
   const handleSubmit = async () => {
     // Validation
     if (!dateRange) {
+      alert("Please select a date range");
       return;
     }
 
     if (!reason.trim()) {
+      alert("Please provide a reason for leave");
       return;
     }
 
     if (reason.trim().length < 10) {
+      alert("Reason must be at least 10 characters long");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Get token from localStorage
-      const token = localStorage.getItem("token");
+      // Get token from localStorage (for old users)
+      const localToken = localStorage.getItem("token");
 
-      // Check if user has either token or Clerk session
-      if (!token && !isSignedIn) {
+      // Get Clerk token (for new users)
+      let clerkToken = null;
+      if (isSignedIn) {
+        clerkToken = await getToken();
+      }
+
+      // Check if user has either token
+      if (!localToken && !clerkToken) {
         router.push("/login");
         return;
       }
 
       if (!selectedStartDate || !selectedEndDate) {
+        alert("Please select valid dates");
         return;
       }
 
@@ -146,9 +157,13 @@ const SubmitLeaveForm: React.FC = () => {
         "Content-Type": "application/json",
       };
 
-      // Add Authorization header if token exists
-      if (token) {
-        headers["Authorization"] = `Bearer ${token}`;
+      // Prioritize Clerk token for new users, fall back to localStorage token for old users
+      if (clerkToken) {
+        headers["Authorization"] = `Bearer ${clerkToken}`;
+        console.log("Using Clerk token");
+      } else if (localToken) {
+        headers["Authorization"] = `Bearer ${localToken}`;
+        console.log("Using localStorage token");
       }
 
       const response = await fetch(
