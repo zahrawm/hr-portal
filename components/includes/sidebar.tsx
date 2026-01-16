@@ -160,26 +160,49 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       let storedUser;
       let roles: string[] = [];
 
-      // Prioritize localStorage user data
-      const localStorageUser = localStorage.getItem("user");
-      if (localStorageUser) {
-        storedUser = JSON.parse(localStorageUser);
-        roles = storedUser?.role || [];
-      } else if (isSignedIn && clerkUser) {
-        // Fall back to Clerk user data
+      // Check if using Clerk first
+      if (isSignedIn && clerkUser) {
+        // Debug: Log all Clerk user data
+        console.log("=== CLERK USER DATA ===");
+        console.log("Full clerkUser object:", clerkUser);
+        console.log("firstName:", clerkUser.firstName);
+        console.log("lastName:", clerkUser.lastName);
+        console.log("fullName:", clerkUser.fullName);
+        console.log("username:", clerkUser.username);
+        console.log("email:", clerkUser.primaryEmailAddress?.emailAddress);
+
+        // Use Clerk user data
+        const firstName = clerkUser.firstName || "";
+        const lastName = clerkUser.lastName || "";
         const fullName =
           clerkUser.fullName ||
-          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+          (firstName && lastName
+            ? `${firstName} ${lastName}`
+            : firstName || lastName) ||
           clerkUser.username ||
+          clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
           "User";
+
+        console.log("Final name being set:", fullName);
 
         storedUser = {
           name: fullName,
           email: clerkUser.primaryEmailAddress?.emailAddress,
         };
-        // Default role for Clerk users (you may want to fetch this from your backend)
+        // Default role for Clerk users
         roles = ["EMPLOYEE"];
+      } else {
+        // Fall back to localStorage user data
+        const localStorageUser = localStorage.getItem("user");
+        if (localStorageUser) {
+          storedUser = JSON.parse(localStorageUser);
+          roles = storedUser?.role || [];
+        }
       }
+
+      console.log("=== FINAL USER DATA ===");
+      console.log("storedUser:", storedUser);
+      console.log("roles:", roles);
 
       const savedSidebarState = localStorage.getItem("sidebarOpen");
 
