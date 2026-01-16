@@ -162,16 +162,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
 
       // Check if using Clerk first
       if (isSignedIn && clerkUser) {
-        // DEBUG: Log everything from Clerk
-        console.log("=== CLERK DEBUG ===");
-        console.log("clerkUser:", clerkUser);
-        console.log("fullName:", clerkUser.fullName);
-        console.log("firstName:", clerkUser.firstName);
-        console.log("lastName:", clerkUser.lastName);
-        console.log("username:", clerkUser.username);
-        console.log("email:", clerkUser.primaryEmailAddress?.emailAddress);
-
-        // Get name from Clerk - simplified and working approach
+        // Get name from Clerk
         const userName =
           clerkUser.fullName ||
           `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
@@ -179,14 +170,10 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
           clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
           "User";
 
-        console.log("Final userName:", userName);
-
         storedUser = {
           name: userName,
           email: clerkUser.primaryEmailAddress?.emailAddress,
         };
-
-        console.log("storedUser:", storedUser);
 
         // Default role for Clerk users
         roles = ["EMPLOYEE"];
@@ -199,7 +186,6 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         }
       }
 
-      console.log("About to set employee:", storedUser);
       const savedSidebarState = localStorage.getItem("sidebarOpen");
 
       setEmployee(storedUser);
@@ -227,7 +213,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   }, [userRoles]);
 
   // Don't render sidebar if not authenticated or still checking
-  if (!isAuthenticated || isChecking || !clerkLoaded) {
+  if (!isAuthenticated || isChecking || !clerkLoaded || !isLoaded) {
     return null;
   }
 
