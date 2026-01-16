@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
+import { auth } from "@clerk/nextjs/server";
 import connectDB from "../mongodb/connection";
 import User from "../mongodb/models/Users";
 
@@ -35,8 +36,58 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
     console.log("=== AUTH MIDDLEWARE DEBUG ===");
     console.log("Full auth header:", authHeader);
 
+    // Try Clerk authentication first if no Authorization header
     if (!authHeader) {
-      console.log("No Authorization header found");
+      console.log("No Authorization header, trying Clerk session...");
+
+      try {
+        const { userId } = await auth();
+
+        if (userId) {
+          console.log("Clerk session found, userId:", userId);
+
+          // Connect to database
+          await connectDB();
+
+          // Find user by Clerk ID
+          const user = await User.findOne({ clerkId: userId })
+            .select("email role")
+            .lean<LeanUser>();
+
+          if (!user) {
+            console.log("User not found with Clerk ID:", userId);
+            return {
+              error: "User not found",
+              status: 404,
+            };
+          }
+
+          // Ensure roles is an array
+          const userRoles = Array.isArray(user.role)
+            ? user.role
+            : user.role
+            ? [user.role as unknown as string]
+            : ["EMPLOYEE"];
+
+          console.log("User authenticated via Clerk:", {
+            id: user._id.toString(),
+            email: user.email,
+            roles: userRoles,
+          });
+
+          return {
+            user: {
+              id: user._id.toString(),
+              email: user.email,
+              roles: userRoles,
+            },
+            status: 200,
+          };
+        }
+      } catch (clerkError) {
+        console.log("Clerk authentication failed:", clerkError);
+      }
+
       return {
         error: "Authorization header missing",
         status: 401,

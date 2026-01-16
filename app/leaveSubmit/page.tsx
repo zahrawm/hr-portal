@@ -146,7 +146,7 @@ const SubmitLeaveForm: React.FC = () => {
         "Content-Type": "application/json",
       };
 
-      // Only add Authorization header if token exists
+      // Add Authorization header if token exists
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
       }
@@ -157,7 +157,7 @@ const SubmitLeaveForm: React.FC = () => {
           method: "POST",
           headers,
           body: JSON.stringify(requestData),
-          credentials: "include", // Include cookies for Clerk session
+          credentials: "include",
         }
       );
 
