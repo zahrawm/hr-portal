@@ -5,11 +5,13 @@ import { useTheme } from "next-themes";
 import { AppLayout } from "@/components/layout/app";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
+import { useUser } from "@clerk/nextjs";
 
 export const dynamic = "force-dynamic";
 
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
+  const { isSignedIn, isLoaded, user } = useUser();
   const [showToast, setShowToast] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,6 +22,19 @@ const LeaveRequestContent: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for Clerk to load
+    if (!isLoaded) return;
+
+    // Check both Clerk auth and localStorage token
+    const token = localStorage.getItem("token");
+
+    // If user is not signed in with Clerk AND no token in localStorage, redirect to login
+    if (!isSignedIn && !token) {
+      router.push("/login");
+      return;
+    }
+
+    // Initialize page
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("success") === "true") {
@@ -30,33 +45,58 @@ const LeaveRequestContent: React.FC = () => {
     }
 
     fetchLeaveRequests();
-  }, []);
+  }, [isLoaded, isSignedIn, router]);
 
   const fetchLeaveRequests = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        router.push("/login");
+
+      // If no token but user is signed in with Clerk, you might need to get Clerk's token
+      // For now, we'll just check if either auth method exists
+      if (!token && !isSignedIn) {
+        console.log("No authentication found");
         return;
       }
 
-      // Decode token to get user ID
-      const decodedToken: any = jwtDecode(token);
-      const userId = decodedToken.id || decodedToken.userId || decodedToken.sub;
+      let userId;
+
+      if (token) {
+        // Decode token to get user ID from localStorage auth
+        const decodedToken: any = jwtDecode(token);
+        userId = decodedToken.id || decodedToken.userId || decodedToken.sub;
+      } else if (isSignedIn && user) {
+        // Use Clerk user ID if signed in with Clerk
+        userId = user.id;
+      }
+
+      if (!userId) {
+        console.error("No user ID found");
+        setIsLoading(false);
+        return;
+      }
+
+      // Prepare headers - only include Authorization if token exists
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
 
       // Fetch only the current user's leave requests
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}`,
         {
           method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: headers,
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch leave requests");
+        throw new Error(
+          `Failed to fetch leave requests: ${response.status} ${response.statusText}`
+        );
       }
 
       const data = await response.json();
@@ -114,6 +154,8 @@ const LeaveRequestContent: React.FC = () => {
       setLeaveRequests(transformedData);
     } catch (error) {
       console.error("Error fetching leave requests:", error);
+      // Show user-friendly error message
+      setLeaveRequests([]);
     } finally {
       setIsLoading(false);
     }
@@ -124,6 +166,17 @@ const LeaveRequestContent: React.FC = () => {
   };
 
   const { theme } = useTheme();
+
+  // Show loading while Clerk is checking auth status
+  if (!isLoaded) {
+    return (
+      <AppLayout>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const filteredRequests = leaveRequests.filter((request) => {
     const matchesSearch =
@@ -170,7 +223,7 @@ const LeaveRequestContent: React.FC = () => {
     <AppLayout>
       {showToast && (
         <div className="fixed top-6 right-6 z-50">
-          <div className="bg-green-600 text-white  x-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
+          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
             <span className="flex-1">Leave Submitted Successfully</span>
             <button
               onClick={() => setShowToast(false)}

@@ -2,14 +2,10 @@
 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-
+import { useUser } from "@clerk/nextjs";
 import { ChevronDown, ChevronUp, LogOutIcon, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import chart from "../../../../public/img/chart.svg";
-import home from "../../../../public/img/home.svg";
 import Link from "next/link";
-
-import wallet from "../../../../public/img/wallet2.svg";
 
 type NavLink = {
   href: string;
@@ -35,16 +31,9 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const { isSignedIn, isLoaded: clerkLoaded, user: clerkUser } = useUser();
 
   const navLinks: NavLink[] = [
-    // {
-    //   href: "/department",
-    //   label: "Department",
-    //   icon: "../img/department.svg",
-    //   isImage: true,
-    //   activeKey: "department",
-    //   roles: ["ADMIN", "MANAGER"],
-    // },
     {
       href: "/department",
       label: "Department",
@@ -77,7 +66,6 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
       activeKey: "employees list",
       roles: ["ADMIN", "MANAGER"],
     },
-
     {
       href: "/employeesProfile",
       label: "Employees Profile",
@@ -139,68 +127,58 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
-  // Check authentication IMMEDIATELY on mount
+  // FIXED: Check authentication with both Clerk and localStorage
   useEffect(() => {
+    // Wait for Clerk to load first
+    if (!clerkLoaded) {
+      return;
+    }
+
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("token");
       const user = localStorage.getItem("user");
 
-      if (!token || !user) {
-        // Redirect immediately without setting any state
+      // User is authenticated if EITHER:
+      // 1. They're signed in with Clerk, OR
+      // 2. They have a valid token in localStorage
+      if (isSignedIn || (token && user)) {
+        setIsAuthenticated(true);
+        setIsChecking(false);
+      } else {
+        // Only redirect if both auth methods fail
         window.location.href = "/";
         return;
       }
-      setIsAuthenticated(true);
-      setIsChecking(false);
     }
-  }, []);
+  }, [clerkLoaded, isSignedIn]);
 
-  // Check authentication on pathname change
+  // Load user from localStorage OR Clerk
   useEffect(() => {
-    const checkAuth = () => {
-      if (typeof window !== "undefined") {
-        const token = localStorage.getItem("token");
-        const user = localStorage.getItem("user");
+    if (!clerkLoaded) return;
 
-        if (!token || !user) {
-          window.location.href = "/";
-          return false;
-        }
-        return true;
-      }
-      return false;
-    };
-
-    // Add event listener for browser back/forward navigation
-    const handlePopState = () => {
-      checkAuth();
-    };
-
-    window.addEventListener("popstate", handlePopState);
-
-    // Check authentication on page visibility change
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        checkAuth();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [pathname]);
-
-  // Load user from localStorage and restore sidebar state
-  useEffect(() => {
     if (typeof window !== "undefined") {
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      let storedUser;
+      let roles: string[] = [];
+
+      // Prioritize localStorage user data
+      const localStorageUser = localStorage.getItem("user");
+      if (localStorageUser) {
+        storedUser = JSON.parse(localStorageUser);
+        roles = storedUser?.role || [];
+      } else if (isSignedIn && clerkUser) {
+        // Fall back to Clerk user data
+        storedUser = {
+          name: clerkUser.firstName || clerkUser.username || "User",
+          email: clerkUser.primaryEmailAddress?.emailAddress,
+        };
+        // Default role for Clerk users (you may want to fetch this from your backend)
+        roles = ["EMPLOYEE"];
+      }
+
       const savedSidebarState = localStorage.getItem("sidebarOpen");
 
       setEmployee(storedUser);
-      setUserRoles(storedUser?.role || []);
+      setUserRoles(roles);
       setIsLoaded(true);
 
       // Restore sidebar state if it was saved
@@ -208,7 +186,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         setIsOpen(savedSidebarState === "true");
       }
     }
-  }, []);
+  }, [clerkLoaded, isSignedIn, clerkUser]);
 
   // Save sidebar state to localStorage whenever it changes
   useEffect(() => {
@@ -223,14 +201,14 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
     );
   }, [userRoles]);
 
-  // Don't render sidebar if not authenticated
-  if (!isAuthenticated || isChecking) {
+  // Don't render sidebar if not authenticated or still checking
+  if (!isAuthenticated || isChecking || !clerkLoaded) {
     return null;
   }
 
   return (
     <>
-      {/* ........Sidebar toggle..........*/}
+      {/* Sidebar toggle */}
       <button
         className="fixed z-50 cursor-pointer transition-all duration-300 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:bg-[#1BBC78] dark:hover:bg-gray-700"
         style={{
@@ -248,7 +226,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         )}
       </button>
 
-      {/* ....Sidebar........ */}
+      {/* Sidebar */}
       <nav
         className={cn(
           "fixed left-0 top-14 z-20 h-[calc(100vh-3.5rem)] origin-left transform overflow-y-auto border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 transition-all duration-300",
@@ -366,8 +344,6 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                     <button
                       onClick={() => {
                         localStorage.clear();
-
-                        // Immediate redirect without any delay
                         window.location.href = "/";
                       }}
                       className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

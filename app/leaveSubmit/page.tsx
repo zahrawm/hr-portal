@@ -9,9 +9,11 @@ import {
 } from "lucide-react";
 import { AppLayout } from "@/components/layout/app";
 import { useRouter } from "next/navigation";
+import { useUser } from "@clerk/nextjs";
 
 const SubmitLeaveForm: React.FC = () => {
   const router = useRouter();
+  const { isSignedIn, user } = useUser();
   const [dateRange, setDateRange] = useState("");
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
@@ -117,10 +119,11 @@ const SubmitLeaveForm: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Get the token from localStorage or cookies
+      // Get the token from localStorage OR check if user is signed in with Clerk
       const token = localStorage.getItem("token");
 
-      if (!token) {
+      // If no token and not signed in with Clerk, redirect to login
+      if (!token && !isSignedIn) {
         router.push("/login");
         return;
       }
@@ -138,15 +141,22 @@ const SubmitLeaveForm: React.FC = () => {
 
       console.log("Sending request data:", requestData);
 
+      // Prepare headers - only include Authorization if token exists
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
           body: JSON.stringify(requestData),
+          credentials: "include", // Include cookies for Clerk session
         }
       );
 

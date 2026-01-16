@@ -14,6 +14,22 @@ import {
 
 export const ModeToggle = () => {
   const { setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  // Only render after component is mounted on client
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Return a placeholder with the same dimensions during SSR
+  if (!mounted) {
+    return (
+      <Button variant="outline" size="icon" disabled>
+        <Sun className="h-[1.2rem] w-[1.2rem]" />
+        <span className="sr-only">Toggle theme</span>
+      </Button>
+    );
+  }
 
   return (
     <DropdownMenu>
