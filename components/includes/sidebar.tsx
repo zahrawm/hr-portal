@@ -167,8 +167,14 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         roles = storedUser?.role || [];
       } else if (isSignedIn && clerkUser) {
         // Fall back to Clerk user data
+        const fullName =
+          clerkUser.fullName ||
+          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+          clerkUser.username ||
+          "User";
+
         storedUser = {
-          name: clerkUser.firstName || clerkUser.username || "User",
+          name: fullName,
           email: clerkUser.primaryEmailAddress?.emailAddress,
         };
         // Default role for Clerk users (you may want to fetch this from your backend)
