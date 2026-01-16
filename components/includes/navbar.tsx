@@ -3,23 +3,54 @@
 import { Bell, Settings } from "lucide-react";
 import { ModeToggle } from "../theme/ThemeSwitcher";
 import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
 export default function Navbar() {
   const [employee, setEmployee] = useState<any>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [greeting, setGreeting] = useState("Good morning"); // Add this line
+  const [greeting, setGreeting] = useState("Good morning");
+  const { isSignedIn, isLoaded: clerkLoaded, user: clerkUser } = useUser();
 
-  // ---- Load user from localStorage safely ----
+  // ---- Load user from localStorage OR Clerk ----
   useEffect(() => {
+    if (!clerkLoaded) return;
+
     if (typeof window !== "undefined") {
-      const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      let storedUser;
+      let roles: string[] = [];
+
+      // Check if using Clerk first
+      if (isSignedIn && clerkUser) {
+        // Get name from Clerk
+        const userName =
+          clerkUser.fullName ||
+          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+          clerkUser.username ||
+          clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
+          "User";
+
+        storedUser = {
+          name: userName,
+          email: clerkUser.primaryEmailAddress?.emailAddress,
+        };
+
+        // Default role for Clerk users
+        roles = ["EMPLOYEE"];
+      } else {
+        // Fall back to localStorage user data
+        const localStorageUser = localStorage.getItem("user");
+        if (localStorageUser) {
+          storedUser = JSON.parse(localStorageUser);
+          roles = storedUser?.role || [];
+        }
+      }
 
       setEmployee(storedUser);
-      setUserRoles(storedUser?.role || []);
+      setUserRoles(roles);
       setIsLoaded(true);
     }
-  }, []);
+  }, [clerkLoaded, isSignedIn, clerkUser]);
 
   // ---- Set greeting based on time ----
   useEffect(() => {
@@ -52,7 +83,7 @@ export default function Navbar() {
           {/* Center Section - Greeting */}
           <div className="flex-1 flex justify-start ml-40">
             <div className="text-base font-bold text-[#001F37] dark:text-gray-400 ">
-              {greeting} {employee?.name}
+              {greeting} {employee?.name || ""}
             </div>
           </div>
 
