@@ -127,7 +127,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
 
-  // FIXED: Check authentication with both Clerk and localStorage
+  // Check authentication with both Clerk and localStorage
   useEffect(() => {
     // Wait for Clerk to load first
     if (!clerkLoaded) {
@@ -162,31 +162,16 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
 
       // Check if using Clerk first
       if (isSignedIn && clerkUser) {
-        // Debug: Log all Clerk user data
-        console.log("=== CLERK USER DATA ===");
-        console.log("Full clerkUser object:", clerkUser);
-        console.log("firstName:", clerkUser.firstName);
-        console.log("lastName:", clerkUser.lastName);
-        console.log("fullName:", clerkUser.fullName);
-        console.log("username:", clerkUser.username);
-        console.log("email:", clerkUser.primaryEmailAddress?.emailAddress);
-
-        // Use Clerk user data
-        const firstName = clerkUser.firstName || "";
-        const lastName = clerkUser.lastName || "";
-        const fullName =
+        // Get name from Clerk - simplified and working approach
+        const userName =
           clerkUser.fullName ||
-          (firstName && lastName
-            ? `${firstName} ${lastName}`
-            : firstName || lastName) ||
+          `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
           clerkUser.username ||
           clerkUser.primaryEmailAddress?.emailAddress?.split("@")[0] ||
           "User";
 
-        console.log("Final name being set:", fullName);
-
         storedUser = {
-          name: fullName,
+          name: userName,
           email: clerkUser.primaryEmailAddress?.emailAddress,
         };
         // Default role for Clerk users
@@ -200,10 +185,6 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         }
       }
 
-      console.log("=== FINAL USER DATA ===");
-      console.log("storedUser:", storedUser);
-      console.log("roles:", roles);
-
       const savedSidebarState = localStorage.getItem("sidebarOpen");
 
       setEmployee(storedUser);
@@ -215,7 +196,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
         setIsOpen(savedSidebarState === "true");
       }
     }
-  }, [clerkLoaded, isSignedIn, clerkUser]);
+  }, [clerkLoaded, isSignedIn, clerkUser, setIsOpen]);
 
   // Save sidebar state to localStorage whenever it changes
   useEffect(() => {
@@ -338,7 +319,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                     />
                     <div className="text-left">
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {employee?.name}
+                        {employee?.name || "User"}
                       </div>
                       <h1 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {userRoles[0] || "User"}
