@@ -42,13 +42,28 @@ const LeaveRequestContent: React.FC = () => {
         setShowToast(true);
         window.history.replaceState({}, "", "/leaveRequests");
         setTimeout(() => setShowToast(false), 5000);
+        // Fetch leave requests when redirected back with success
+        fetchLeaveRequests();
+        return;
       }
     }
 
     fetchLeaveRequests();
   }, [isLoaded, isSignedIn, router]);
 
+  // Refetch when page gains focus (user comes back from submit page)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log("Page focused, refetching leave requests...");
+      fetchLeaveRequests();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [isLoaded, isSignedIn, user]);
+
   const fetchLeaveRequests = async () => {
+    setIsLoading(true);
     try {
       const localToken = localStorage.getItem("token");
 
@@ -57,6 +72,7 @@ const LeaveRequestContent: React.FC = () => {
       if (isSignedIn) {
         try {
           clerkToken = await getToken();
+          console.log("Clerk token obtained");
         } catch (error) {
           console.error("Error getting Clerk token:", error);
         }
@@ -75,9 +91,11 @@ const LeaveRequestContent: React.FC = () => {
         // Decode token to get user ID from localStorage auth
         const decodedToken: any = jwtDecode(localToken);
         userId = decodedToken.id || decodedToken.userId || decodedToken.sub;
+        console.log("Using localStorage auth, userId:", userId);
       } else if (isSignedIn && user) {
         // Use Clerk user ID if signed in with Clerk
         userId = user.id;
+        console.log("Using Clerk auth, userId:", userId);
       }
 
       if (!userId) {
@@ -96,34 +114,53 @@ const LeaveRequestContent: React.FC = () => {
       // Add authorization token (prioritize Clerk token for new users)
       if (clerkToken) {
         headers.Authorization = `Bearer ${clerkToken}`;
-        console.log("Using Clerk token");
+        console.log("Using Clerk token for authentication");
       } else if (localToken) {
         headers.Authorization = `Bearer ${localToken}`;
-        console.log("Using localStorage token");
+        console.log("Using localStorage token for authentication");
       }
 
       // Fetch only the current user's leave requests
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}`,
-        {
-          method: "GET",
-          headers: headers,
-          credentials: "include",
-        }
-      );
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}`;
+      console.log("Fetching from URL:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: headers,
+        credentials: "include",
+      });
+
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response:", errorText);
         throw new Error(
           `Failed to fetch leave requests: ${response.status} ${response.statusText}`
         );
       }
 
       const data = await response.json();
-      console.log("API Response:", data);
+      console.log("API Response data:", data);
+      console.log(
+        "Number of requests received:",
+        Array.isArray(data)
+          ? data.length
+          : data.leaveRequests?.length || data.data?.length || 0
+      );
 
       const requestsArray = Array.isArray(data)
         ? data
         : data.leaveRequests || data.data || [];
+
+      console.log("Requests array:", requestsArray);
+
+      if (requestsArray.length === 0) {
+        console.log("No leave requests found for this user");
+        setLeaveRequests([]);
+        setIsLoading(false);
+        return;
+      }
 
       const transformedData = requestsArray.map((request: any) => {
         const createdDate = new Date(request.createdAt);
@@ -151,7 +188,10 @@ const LeaveRequestContent: React.FC = () => {
           statusBg = "bg-green-50 dark:bg-green-900/20";
           statusDot = "bg-green-500 dark:bg-green-400";
           displayStatus = "Approved";
-        } else if (request.status === "REJECTED") {
+        } else if (
+          request.status === "REJECTED" ||
+          request.status === "DENIED"
+        ) {
           statusColor = "text-red-600 dark:text-red-400";
           statusBg = "bg-red-50 dark:bg-red-900/20";
           statusDot = "bg-red-500 dark:bg-red-400";
@@ -170,6 +210,7 @@ const LeaveRequestContent: React.FC = () => {
         };
       });
 
+      console.log("Transformed data:", transformedData);
       setLeaveRequests(transformedData);
     } catch (error) {
       console.error("Error fetching leave requests:", error);
