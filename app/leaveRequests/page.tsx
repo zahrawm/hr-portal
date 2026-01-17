@@ -46,7 +46,7 @@ const LeaveRequestContent: React.FC = () => {
         setTimeout(() => {
           console.log("Fetching after successful submission...");
           fetchLeaveRequests();
-        }, 1000); // Increased from 500ms to 1000ms
+        }, 1500); // Increased to 1.5 seconds
         return;
       }
     }
@@ -59,20 +59,18 @@ const LeaveRequestContent: React.FC = () => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "leaveRequestSubmitted" && e.newValue === "true") {
         console.log("Leave request submitted, refreshing...");
-        // Add delay before fetching
         setTimeout(() => {
           fetchLeaveRequests();
-        }, 500);
+        }, 1000);
         localStorage.removeItem("leaveRequestSubmitted");
       }
     };
 
     const handleCustomRefresh = () => {
       console.log("Custom refresh event triggered");
-      // Add delay before fetching
       setTimeout(() => {
         fetchLeaveRequests();
-      }, 500);
+      }, 1000);
     };
 
     // Check on mount if there's a pending refresh
@@ -81,7 +79,7 @@ const LeaveRequestContent: React.FC = () => {
         console.log("Pending refresh detected on mount");
         setTimeout(() => {
           fetchLeaveRequests();
-        }, 500);
+        }, 1000);
         localStorage.removeItem("leaveRequestSubmitted");
       }
     };
@@ -143,33 +141,41 @@ const LeaveRequestContent: React.FC = () => {
         return;
       }
 
-      let userId;
+      // Get BOTH user IDs
+      let clerkUserId = null;
+      let localUserId = null;
 
-      if (localToken) {
-        // Decode token to get user ID from localStorage auth
-        const decodedToken: any = jwtDecode(localToken);
-        userId = decodedToken.id || decodedToken.userId || decodedToken.sub;
-        console.log("Using localStorage auth, userId:", userId);
-      } else if (isSignedIn && user) {
-        // Use Clerk user ID if signed in with Clerk
-        userId = user.id;
-        console.log("Using Clerk auth, userId:", userId);
+      if (isSignedIn && user) {
+        clerkUserId = user.id;
+        console.log("Clerk user ID:", clerkUserId);
       }
 
-      if (!userId) {
+      if (localToken) {
+        const decodedToken: any = jwtDecode(localToken);
+        localUserId =
+          decodedToken.id || decodedToken.userId || decodedToken.sub;
+        console.log("LocalStorage user ID:", localUserId);
+      }
+
+      // Collect all possible user IDs to fetch for
+      const userIds = [];
+      if (clerkUserId) userIds.push(clerkUserId);
+      if (localUserId && localUserId !== clerkUserId) userIds.push(localUserId);
+
+      if (userIds.length === 0) {
         console.error("No user ID found");
         setIsLoading(false);
         return;
       }
 
-      console.log("Fetching leave requests for user:", userId);
+      console.log("Fetching leave requests for user IDs:", userIds);
 
       // Prepare headers
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
 
-      // Add authorization token (prioritize Clerk token for new users)
+      // Add authorization token (prioritize Clerk token)
       if (clerkToken) {
         headers.Authorization = `Bearer ${clerkToken}`;
         console.log("Using Clerk token for authentication");
@@ -178,52 +184,68 @@ const LeaveRequestContent: React.FC = () => {
         console.log("Using localStorage token for authentication");
       }
 
-      // Add timestamp to prevent caching
-      const timestamp = new Date().getTime();
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}&t=${timestamp}`;
-      console.log("Fetching from URL:", url);
+      // Fetch leave requests for all user IDs
+      const allRequests: any[] = [];
 
-      const response = await fetch(url, {
-        method: "GET",
-        headers: headers,
-        credentials: "include",
-        cache: "no-store",
-      });
+      for (const userId of userIds) {
+        try {
+          // Add timestamp to prevent caching
+          const timestamp = new Date().getTime();
+          const url = `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}&t=${timestamp}`;
+          console.log(`Fetching from URL for ${userId}:`, url);
 
-      console.log("Response status:", response.status);
+          const response = await fetch(url, {
+            method: "GET",
+            headers: headers,
+            credentials: "include",
+            cache: "no-store",
+          });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(
-          `Failed to fetch leave requests: ${response.status} ${response.statusText}`
-        );
+          console.log(`Response status for ${userId}:`, response.status);
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log(`API Response data for ${userId}:`, data);
+
+            const requestsArray = Array.isArray(data)
+              ? data
+              : data.leaveRequests || data.data || [];
+
+            console.log(`Requests for ${userId}:`, requestsArray.length);
+
+            // Add to combined array
+            allRequests.push(...requestsArray);
+          } else {
+            const errorText = await response.text();
+            console.warn(`Failed to fetch for ${userId}:`, errorText);
+          }
+        } catch (error) {
+          console.warn(`Error fetching for ${userId}:`, error);
+        }
       }
 
-      const data = await response.json();
-      console.log("API Response data:", data);
-      console.log(
-        "Number of requests received:",
-        Array.isArray(data)
-          ? data.length
-          : data.leaveRequests?.length || data.data?.length || 0
+      console.log("Total requests from all IDs:", allRequests.length);
+
+      // Remove duplicates by ID
+      const uniqueRequests = allRequests.filter(
+        (request, index, self) =>
+          index ===
+          self.findIndex((r) => (r._id || r.id) === (request._id || request.id))
       );
 
-      const requestsArray = Array.isArray(data)
-        ? data
-        : data.leaveRequests || data.data || [];
+      console.log(
+        "Unique requests after deduplication:",
+        uniqueRequests.length
+      );
 
-      console.log("Requests array:", requestsArray);
-      console.log("Requests array length:", requestsArray.length);
-
-      if (requestsArray.length === 0) {
-        console.log("No leave requests found for this user");
+      if (uniqueRequests.length === 0) {
+        console.log("⚠️ No leave requests found for any user ID");
         setLeaveRequests([]);
         setIsLoading(false);
         return;
       }
 
-      const transformedData = requestsArray.map((request: any) => {
+      const transformedData = uniqueRequests.map((request: any) => {
         const createdDate = new Date(request.createdAt);
         const formattedDate = `${createdDate
           .getDate()
@@ -271,7 +293,7 @@ const LeaveRequestContent: React.FC = () => {
         };
       });
 
-      console.log("Transformed data:", transformedData);
+      console.log("✅ Transformed data:", transformedData);
       console.log(
         "Setting leave requests with",
         transformedData.length,
@@ -279,8 +301,7 @@ const LeaveRequestContent: React.FC = () => {
       );
       setLeaveRequests(transformedData);
     } catch (error) {
-      console.error("Error fetching leave requests:", error);
-      // Show user-friendly error message
+      console.error("❌ Error fetching leave requests:", error);
       setLeaveRequests([]);
     } finally {
       setIsLoading(false);
@@ -387,7 +408,7 @@ const LeaveRequestContent: React.FC = () => {
                 Leave Requests
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Summit your leave request on the HR Mini
+                Submit your leave request on the HR Mini
               </p>
             </div>
           </div>
