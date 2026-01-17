@@ -62,6 +62,47 @@ const AdminLeaveRequest: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Function to fetch employee details by ID
+  const fetchEmployeeDetails = async (employeeId: string, token: string) => {
+    try {
+      console.log(`Fetching details for employee: ${employeeId}`);
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/users/${employeeId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`Employee details for ${employeeId}:`, result);
+
+        // Handle different response structures
+        const employeeData = result.data || result.user || result;
+
+        return {
+          name: employeeData.name || employeeData.fullName || "Unknown",
+          email: employeeData.email || "Unknown",
+          department: employeeData.department || "N/A",
+          jobTitle: employeeData.jobTitle || employeeData.role || "N/A",
+        };
+      } else {
+        console.warn(
+          `Failed to fetch employee ${employeeId}:`,
+          response.status
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error fetching employee ${employeeId}:`, error);
+      return null;
+    }
+  };
+
   // Function to fetch leave requests from API
   const fetchLeaveRequests = async () => {
     try {
@@ -74,6 +115,8 @@ const AdminLeaveRequest: React.FC = () => {
         router.push("/login");
         return;
       }
+
+      console.log("Fetching leave requests...");
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
@@ -90,6 +133,7 @@ const AdminLeaveRequest: React.FC = () => {
       }
 
       const result = await response.json();
+      console.log("Leave requests API response:", result);
 
       let requestsArray = result;
 
@@ -99,24 +143,72 @@ const AdminLeaveRequest: React.FC = () => {
         requestsArray = [];
       }
 
-      const transformedData = requestsArray.map((request: any) => ({
-        _id: request._id || request.id,
-        name: request.employeeId?.name || "Unknown",
-        email: request.employeeId?.email || "Unknown",
-        department: request.employeeId?.department || "N/A",
-        status: request.status || "PENDING",
-        role: request.employeeId?.jobTitle || "N/A",
-        aprove: "",
-        deny: "",
-        view: "",
-        reason: request.reason,
-        startDate: request.startDate,
-        endDate: request.endDate,
-        daysCount: request.daysCount,
-        denialReason: request.denialReason,
-        employeeId: request.employeeId,
-        approverId: request.approverId,
-      }));
+      console.log(`Processing ${requestsArray.length} leave requests`);
+
+      // Fetch employee details for each request
+      const transformedDataPromises = requestsArray.map(
+        async (request: any) => {
+          let employeeDetails = null;
+
+          // Check if employeeId is populated or just a string
+          if (typeof request.employeeId === "string") {
+            // employeeId is just a string, need to fetch employee details
+            console.log(
+              `Employee ID is string: ${request.employeeId}, fetching details...`
+            );
+            employeeDetails = await fetchEmployeeDetails(
+              request.employeeId,
+              token
+            );
+          } else if (
+            request.employeeId &&
+            typeof request.employeeId === "object"
+          ) {
+            // employeeId is already populated
+            console.log(`Employee ID is populated object:`, request.employeeId);
+            employeeDetails = {
+              name:
+                request.employeeId.name ||
+                request.employeeId.fullName ||
+                "Unknown",
+              email: request.employeeId.email || "Unknown",
+              department: request.employeeId.department || "N/A",
+              jobTitle:
+                request.employeeId.jobTitle || request.employeeId.role || "N/A",
+            };
+          }
+
+          return {
+            _id: request._id || request.id,
+            name: employeeDetails?.name || "Unknown",
+            email: employeeDetails?.email || "Unknown",
+            department: employeeDetails?.department || "N/A",
+            status: request.status || "PENDING",
+            role: employeeDetails?.jobTitle || "N/A",
+            aprove: "",
+            deny: "",
+            view: "",
+            reason: request.reason,
+            startDate: request.startDate,
+            endDate: request.endDate,
+            daysCount: request.daysCount,
+            denialReason: request.denialReason,
+            employeeId: employeeDetails
+              ? {
+                  ...employeeDetails,
+                  _id:
+                    typeof request.employeeId === "string"
+                      ? request.employeeId
+                      : request.employeeId?._id,
+                }
+              : request.employeeId,
+            approverId: request.approverId,
+          };
+        }
+      );
+
+      const transformedData = await Promise.all(transformedDataPromises);
+      console.log("Transformed leave requests:", transformedData);
 
       setManageLeaveRequests(transformedData);
       setIsLoading(false);
@@ -164,13 +256,32 @@ const AdminLeaveRequest: React.FC = () => {
 
   const handleExportCSV = () => {
     // Define CSV headers
-    const headers = ["Name", "Email", "Department", "Role Name"];
+    const headers = [
+      "Name",
+      "Email",
+      "Department",
+      "Role Name",
+      "Status",
+      "Start Date",
+      "End Date",
+      "Days",
+      "Reason",
+    ];
 
     const rows = manageLeaveRequests.map((adminLeaveRequest) => [
       adminLeaveRequest.name,
       adminLeaveRequest.email,
       adminLeaveRequest.department,
       adminLeaveRequest.role,
+      adminLeaveRequest.status,
+      adminLeaveRequest.startDate
+        ? new Date(adminLeaveRequest.startDate).toLocaleDateString()
+        : "N/A",
+      adminLeaveRequest.endDate
+        ? new Date(adminLeaveRequest.endDate).toLocaleDateString()
+        : "N/A",
+      adminLeaveRequest.daysCount || "N/A",
+      adminLeaveRequest.reason || "N/A",
     ]);
 
     // Combine headers and rows
