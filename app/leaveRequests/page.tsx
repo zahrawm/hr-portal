@@ -36,35 +36,47 @@ const LeaveRequestContent: React.FC = () => {
       return;
     }
 
-    // Initialize page
+    // Initialize page and check for success parameter
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get("success") === "true") {
         setShowToast(true);
         window.history.replaceState({}, "", "/leaveRequests");
         setTimeout(() => setShowToast(false), 5000);
-        // Clear the refresh flag after showing toast
-        localStorage.removeItem("leaveRequestSubmitted");
+        // Immediately fetch after success
+        setTimeout(() => fetchLeaveRequests(), 500);
+        return;
       }
     }
 
     fetchLeaveRequests();
-  }, [isLoaded, isSignedIn, router, refreshTrigger]);
+  }, [isLoaded, isSignedIn, router]);
 
   // Listen for storage events to detect when a leave request is submitted
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "leaveRequestSubmitted" && e.newValue === "true") {
         console.log("Leave request submitted, refreshing...");
-        setRefreshTrigger((prev) => prev + 1);
+        fetchLeaveRequests();
+        localStorage.removeItem("leaveRequestSubmitted");
       }
     };
 
     const handleCustomRefresh = () => {
       console.log("Custom refresh event triggered");
-      setRefreshTrigger((prev) => prev + 1);
+      fetchLeaveRequests();
     };
 
+    // Check on mount if there's a pending refresh
+    const checkPendingRefresh = () => {
+      if (localStorage.getItem("leaveRequestSubmitted") === "true") {
+        console.log("Pending refresh detected on mount");
+        fetchLeaveRequests();
+        localStorage.removeItem("leaveRequestSubmitted");
+      }
+    };
+
+    checkPendingRefresh();
     window.addEventListener("storage", handleStorageChange);
     window.addEventListener("refreshLeaveRequests", handleCustomRefresh);
 
@@ -72,19 +84,19 @@ const LeaveRequestContent: React.FC = () => {
       window.removeEventListener("storage", handleStorageChange);
       window.removeEventListener("refreshLeaveRequests", handleCustomRefresh);
     };
-  }, []);
+  }, [isSignedIn, user]);
 
   // Refetch when page gains focus (user comes back from submit page)
   useEffect(() => {
     const handleFocus = () => {
       console.log("Page focused, refetching leave requests...");
-      setRefreshTrigger((prev) => prev + 1);
+      fetchLeaveRequests();
     };
 
     const handleVisibilityChange = () => {
       if (!document.hidden) {
         console.log("Tab became visible, refetching leave requests...");
-        setRefreshTrigger((prev) => prev + 1);
+        fetchLeaveRequests();
       }
     };
 
@@ -95,7 +107,7 @@ const LeaveRequestContent: React.FC = () => {
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [isSignedIn, user]);
 
   const fetchLeaveRequests = async () => {
     setIsLoading(true);
