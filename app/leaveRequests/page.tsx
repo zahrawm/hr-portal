@@ -43,11 +43,36 @@ const LeaveRequestContent: React.FC = () => {
         setShowToast(true);
         window.history.replaceState({}, "", "/leaveRequests");
         setTimeout(() => setShowToast(false), 5000);
+        // Clear the refresh flag after showing toast
+        localStorage.removeItem("leaveRequestSubmitted");
       }
     }
 
     fetchLeaveRequests();
   }, [isLoaded, isSignedIn, router, refreshTrigger]);
+
+  // Listen for storage events to detect when a leave request is submitted
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "leaveRequestSubmitted" && e.newValue === "true") {
+        console.log("Leave request submitted, refreshing...");
+        setRefreshTrigger((prev) => prev + 1);
+      }
+    };
+
+    const handleCustomRefresh = () => {
+      console.log("Custom refresh event triggered");
+      setRefreshTrigger((prev) => prev + 1);
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("refreshLeaveRequests", handleCustomRefresh);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("refreshLeaveRequests", handleCustomRefresh);
+    };
+  }, []);
 
   // Refetch when page gains focus (user comes back from submit page)
   useEffect(() => {
