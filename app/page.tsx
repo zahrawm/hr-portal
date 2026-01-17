@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ModeToggle } from "@/components/theme/ThemeSwitcher";
 import axios from "axios";
@@ -10,8 +10,6 @@ export default function SignupForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const { isSignedIn, user, isLoaded } = useUser();
-  const hasRedirected = useRef(false);
-  const hasCreatedUser = useRef(false);
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -23,93 +21,12 @@ export default function SignupForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailTouched, setEmailTouched] = useState(false);
 
-  // Create user in backend when Clerk user signs in
+  // Redirect Clerk users immediately after sign in
   useEffect(() => {
-    const createClerkUserInBackend = async () => {
-      if (!isLoaded || !isSignedIn || !user || hasCreatedUser.current) {
-        return;
-      }
-
-      hasCreatedUser.current = true;
-
-      try {
-        console.log("Creating Clerk user in backend...");
-
-        const userData = {
-          clerkId: user.id,
-          email: user.primaryEmailAddress?.emailAddress,
-          name:
-            user.fullName ||
-            `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
-            user.username ||
-            "User",
-          role: ["EMPLOYEE"], // Default role for Clerk users
-        };
-
-        console.log("Sending user data to backend:", userData);
-
-        const response = await axios.post(
-          `${process.env.NEXT_PUBLIC_API_URL}/auth/clerk-signup`,
-          userData
-        );
-
-        console.log("Backend user created:", response.data);
-
-        // Store user info in localStorage for compatibility
-        if (response.data.user) {
-          localStorage.setItem("user", JSON.stringify(response.data.user));
-          localStorage.setItem(
-            "userId",
-            response.data.user._id || response.data.user.id
-          );
-        }
-
-        // Redirect after successful creation
-        if (!hasRedirected.current) {
-          hasRedirected.current = true;
-          console.log("Redirecting to /leaveRequests");
-          router.push("/leaveRequests");
-        }
-      } catch (error: any) {
-        console.error("Error creating Clerk user in backend:", error);
-
-        // If user already exists, that's okay - just redirect
-        if (
-          error.response?.status === 409 ||
-          error.response?.data?.message?.includes("already exists")
-        ) {
-          console.log("User already exists, proceeding with login");
-
-          // Try to fetch existing user data
-          try {
-            const existingUserResponse = await axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/auth/clerk-user/${user.id}`
-            );
-
-            if (existingUserResponse.data.user) {
-              localStorage.setItem(
-                "user",
-                JSON.stringify(existingUserResponse.data.user)
-              );
-              localStorage.setItem(
-                "userId",
-                existingUserResponse.data.user._id ||
-                  existingUserResponse.data.user.id
-              );
-            }
-          } catch (fetchError) {
-            console.error("Error fetching existing user:", fetchError);
-          }
-
-          if (!hasRedirected.current) {
-            hasRedirected.current = true;
-            router.push("/leaveRequests");
-          }
-        }
-      }
-    };
-
-    createClerkUserInBackend();
+    if (isLoaded && isSignedIn && user) {
+      console.log("Clerk user signed in, redirecting...");
+      router.push("/leaveRequests");
+    }
   }, [isSignedIn, isLoaded, user, router]);
 
   const validateEmail = (value: string) => {
@@ -501,7 +418,10 @@ export default function SignupForm() {
               </div>
             ) : (
               <SignInButton mode="modal">
-                <button className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 flex items-center justify-center gap-2"
+                >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path
                       fill="currentColor"

@@ -2,8 +2,6 @@ import { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
 import { auth } from "@clerk/nextjs/server";
 import { verifyToken } from "@clerk/backend";
-import connectDB from "../mongodb/connection";
-import User from "../mongodb/models/Users";
 
 interface DecodedToken {
   id: string;
@@ -23,13 +21,6 @@ interface AuthResult {
   status: number;
 }
 
-// Type for the lean() result
-interface LeanUser {
-  _id: string;
-  email: string;
-  role: string[];
-}
-
 export async function authenticate(req: NextRequest): Promise<AuthResult> {
   try {
     // Get token from Authorization header
@@ -41,10 +32,10 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
     let token: string | null = null;
     if (authHeader) {
       if (authHeader.startsWith("Bearer ")) {
-        token = authHeader.substring(7); // Remove "Bearer " prefix
+        token = authHeader.substring(7);
         console.log("Token extracted with Bearer prefix");
       } else {
-        token = authHeader; // Use raw token
+        token = authHeader;
         console.log("Token extracted without Bearer prefix");
       }
     }
@@ -71,40 +62,21 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
         const clerkUserId = verifiedToken.sub;
         console.log("Clerk token verified successfully, userId:", clerkUserId);
 
-        // Connect to database
-        await connectDB();
-
-        // Find user by Clerk ID
-        const user = await User.findOne({ clerkId: clerkUserId })
-          .select("email role")
-          .lean<LeanUser>();
-
-        if (!user) {
-          console.log("User not found with Clerk ID:", clerkUserId);
-          return {
-            error: "User not found",
-            status: 404,
-          };
-        }
-
-        // Ensure roles is an array
-        const userRoles = Array.isArray(user.role)
-          ? user.role
-          : user.role
-          ? [user.role as unknown as string]
-          : ["EMPLOYEE"];
+        // For Clerk users, return their Clerk ID as the user ID
+        // The email is in the token claims
+        const userEmail = (verifiedToken.email as string) || "";
 
         console.log("User authenticated via Clerk token:", {
-          id: user._id.toString(),
-          email: user.email,
-          roles: userRoles,
+          id: clerkUserId,
+          email: userEmail,
+          roles: ["EMPLOYEE"], // Default role for Clerk users
         });
 
         return {
           user: {
-            id: user._id.toString(),
-            email: user.email,
-            roles: userRoles,
+            id: clerkUserId,
+            email: userEmail,
+            roles: ["EMPLOYEE"],
           },
           status: 200,
         };
@@ -149,41 +121,22 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
           };
         }
 
-        // Connect to database
-        await connectDB();
-
-        // Fetch user from database to get current roles
-        const user = await User.findById(decoded.id)
-          .select("email role")
-          .lean<LeanUser>();
-
-        if (!user) {
-          console.log("User not found in database:", decoded.id);
-          return {
-            error: "User not found",
-            status: 404,
-          };
-        }
-
         // Ensure roles is an array
-        const userRoles = Array.isArray(user.role)
-          ? user.role
-          : user.role
-          ? [user.role as unknown as string]
-          : ["EMPLOYEE"];
+        const userRoles = decoded.roles || decoded.role || ["EMPLOYEE"];
+        const rolesArray = Array.isArray(userRoles) ? userRoles : [userRoles];
 
         console.log("User authenticated successfully via JWT:", {
           id: decoded.id,
-          email: user.email,
-          roles: userRoles,
+          email: decoded.email,
+          roles: rolesArray,
         });
 
-        // Return authenticated user with roles from database
+        // Return authenticated user
         return {
           user: {
             id: decoded.id,
             email: decoded.email,
-            roles: userRoles,
+            roles: rolesArray,
           },
           status: 200,
         };
@@ -199,40 +152,11 @@ export async function authenticate(req: NextRequest): Promise<AuthResult> {
       if (userId) {
         console.log("Clerk session found, userId:", userId);
 
-        // Connect to database
-        await connectDB();
-
-        // Find user by Clerk ID
-        const user = await User.findOne({ clerkId: userId })
-          .select("email role")
-          .lean<LeanUser>();
-
-        if (!user) {
-          console.log("User not found with Clerk ID:", userId);
-          return {
-            error: "User not found",
-            status: 404,
-          };
-        }
-
-        // Ensure roles is an array
-        const userRoles = Array.isArray(user.role)
-          ? user.role
-          : user.role
-          ? [user.role as unknown as string]
-          : ["EMPLOYEE"];
-
-        console.log("User authenticated via Clerk session:", {
-          id: user._id.toString(),
-          email: user.email,
-          roles: userRoles,
-        });
-
         return {
           user: {
-            id: user._id.toString(),
-            email: user.email,
-            roles: userRoles,
+            id: userId,
+            email: "", // Email not available from session
+            roles: ["EMPLOYEE"],
           },
           status: 200,
         };
