@@ -1,564 +1,444 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { Search, Filter, X } from "lucide-react";
-import { useTheme } from "next-themes";
+import {
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  X,
+} from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/app";
+import UserTable from "@/components/ui/table";
+import ManageEmployeeTable from "@/components/ui/manage-employee-table";
+import AddEmployeeForm from "@/components/layout/add-employee";
 import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
-import { useUser, useAuth } from "@clerk/nextjs";
+import ManageLeaveRequestTable from "@/components/ui/manage-leave-request-table";
 
-export const dynamic = "force-dynamic";
+type ConflictType = adminLeaveRequest | null;
 
-const LeaveRequestContent: React.FC = () => {
+interface adminLeaveRequest {
+  _id?: string;
+  name: string;
+  email: string;
+  department: string;
+  status: string;
+  role: string;
+  aprove?: string;
+  deny?: string;
+  view: string;
+  reason?: string;
+  startDate?: string;
+  endDate?: string;
+  daysCount?: number;
+  denialReason?: string;
+  employeeId?: any;
+  approverId?: any;
+}
+
+const AdminLeaveRequest: React.FC = () => {
   const router = useRouter();
-  const { isSignedIn, isLoaded, user } = useUser();
-  const { getToken } = useAuth();
-  const [showToast, setShowToast] = useState(false);
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState("all");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState("Ghana");
+  const [selectedRole, setSelectedRole] = useState("Role");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showEditApprovalModal, setShowEditApprovalModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showResetPinModal, setShowResetPinModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedConflict, setSelectedConflict] = useState<ConflictType>(null);
+  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
+  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
+    null
+  );
+  const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
+
+  // New state for leave requests
+  const [manageLeaveRequests, setManageLeaveRequests] = useState<
+    adminLeaveRequest[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Wait for Clerk to load
-    if (!isLoaded) return;
-
-    // Check both Clerk auth and localStorage token
-    const token = localStorage.getItem("token");
-
-    // If user is not signed in with Clerk AND no token in localStorage, redirect to login
-    if (!isSignedIn && !token) {
-      router.push("/login");
-      return;
-    }
-
-    // Initialize page
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("success") === "true") {
-        setShowToast(true);
-        window.history.replaceState({}, "", "/leaveRequests");
-        setTimeout(() => setShowToast(false), 5000);
-        // Fetch leave requests when redirected back with success
-        fetchLeaveRequests();
-        return;
-      }
-    }
-
-    fetchLeaveRequests();
-  }, [isLoaded, isSignedIn, router]);
-
-  // Refetch when page gains focus (user comes back from submit page)
-  useEffect(() => {
-    const handleFocus = () => {
-      console.log("Page focused, refetching leave requests...");
-      fetchLeaveRequests();
-    };
-
-    window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [isLoaded, isSignedIn, user]);
-
-  const fetchLeaveRequests = async () => {
-    setIsLoading(true);
+  // Function to fetch employee details by ID
+  const fetchEmployeeDetails = async (employeeId: string, token: string) => {
     try {
-      const localToken = localStorage.getItem("token");
-
-      // Get Clerk token if signed in with Clerk
-      let clerkToken = null;
-      if (isSignedIn) {
-        try {
-          clerkToken = await getToken();
-          console.log("Clerk token obtained");
-        } catch (error) {
-          console.error("Error getting Clerk token:", error);
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeId}`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      }
-
-      // If no auth method available, return
-      if (!localToken && !clerkToken) {
-        console.log("No authentication found");
-        setIsLoading(false);
-        return;
-      }
-
-      let userId;
-
-      if (localToken) {
-        // Decode token to get user ID from localStorage auth
-        const decodedToken: any = jwtDecode(localToken);
-        userId = decodedToken.id || decodedToken.userId || decodedToken.sub;
-        console.log("Using localStorage auth, userId:", userId);
-      } else if (isSignedIn && user) {
-        // Use Clerk user ID if signed in with Clerk
-        userId = user.id;
-        console.log("Using Clerk auth, userId:", userId);
-      }
-
-      if (!userId) {
-        console.error("No user ID found");
-        setIsLoading(false);
-        return;
-      }
-
-      console.log("Fetching leave requests for user:", userId);
-
-      // Prepare headers
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-
-      // Add authorization token (prioritize Clerk token for new users)
-      if (clerkToken) {
-        headers.Authorization = `Bearer ${clerkToken}`;
-        console.log("Using Clerk token for authentication");
-      } else if (localToken) {
-        headers.Authorization = `Bearer ${localToken}`;
-        console.log("Using localStorage token for authentication");
-      }
-
-      // Fetch only the current user's leave requests
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}`;
-      console.log("Fetching from URL:", url);
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: headers,
-        credentials: "include",
-      });
-
-      console.log("Response status:", response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Error response:", errorText);
-        throw new Error(
-          `Failed to fetch leave requests: ${response.status} ${response.statusText}`
-        );
-      }
-
-      const data = await response.json();
-      console.log("API Response data:", data);
-      console.log(
-        "Number of requests received:",
-        Array.isArray(data)
-          ? data.length
-          : data.leaveRequests?.length || data.data?.length || 0
       );
 
-      const requestsArray = Array.isArray(data)
-        ? data
-        : data.leaveRequests || data.data || [];
+      if (response.ok) {
+        const employee = await response.json();
+        return employee;
+      } else {
+        console.warn(`❌ Employee ${employeeId} not found.`);
+        return null;
+      }
+    } catch (error) {
+      console.error(`Error fetching employee ${employeeId}:`, error);
+      return null;
+    }
+  };
 
-      console.log("Requests array:", requestsArray);
+  // Function to fetch leave requests from API
+  const fetchLeaveRequests = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-      if (requestsArray.length === 0) {
-        console.log("No leave requests found for this user");
-        setLeaveRequests([]);
-        setIsLoading(false);
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        router.push("/login");
         return;
       }
 
-      const transformedData = requestsArray.map((request: any) => {
-        const createdDate = new Date(request.createdAt);
-        const formattedDate = `${createdDate
-          .getDate()
-          .toString()
-          .padStart(2, "0")}/${(createdDate.getMonth() + 1)
-          .toString()
-          .padStart(2, "0")}/${createdDate
-          .getFullYear()
-          .toString()
-          .slice(-2)} | ${createdDate.toLocaleTimeString("en-US", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        })}`;
-
-        let statusColor = "text-gray-600 dark:text-gray-400";
-        let statusBg = "bg-gray-100 dark:bg-gray-700";
-        let statusDot = "bg-gray-400 dark:bg-gray-500";
-        let displayStatus = "Pending Approval";
-
-        if (request.status === "APPROVED") {
-          statusColor = "text-green-600 dark:text-green-400";
-          statusBg = "bg-green-50 dark:bg-green-900/20";
-          statusDot = "bg-green-500 dark:bg-green-400";
-          displayStatus = "Approved";
-        } else if (
-          request.status === "REJECTED" ||
-          request.status === "DENIED"
-        ) {
-          statusColor = "text-red-600 dark:text-red-400";
-          statusBg = "bg-red-50 dark:bg-red-900/20";
-          statusDot = "bg-red-500 dark:bg-red-400";
-          displayStatus = "Rejected";
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
+      );
 
-        return {
-          id: request._id || request.id,
-          date: formattedDate,
-          status: displayStatus,
-          statusColor,
-          statusBg,
-          statusDot,
-          message: request.reason || "No reason provided",
-          rawDate: createdDate,
-        };
-      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch leave requests");
+      }
 
-      console.log("Transformed data:", transformedData);
-      setLeaveRequests(transformedData);
-    } catch (error) {
-      console.error("Error fetching leave requests:", error);
-      // Show user-friendly error message
-      setLeaveRequests([]);
-    } finally {
+      const result = await response.json();
+
+      let requestsArray = result;
+
+      if (result.data && Array.isArray(result.data)) {
+        requestsArray = result.data;
+      } else if (!Array.isArray(requestsArray)) {
+        requestsArray = [];
+      }
+
+      // Transform data with employee details fetching
+      const transformedData = await Promise.all(
+        requestsArray.map(async (request: any) => {
+          let employeeData = null;
+
+          // First, check if employeeId is populated (object)
+          if (request.employeeId && typeof request.employeeId === "object") {
+            employeeData = request.employeeId;
+          }
+          // If employeeId is just a string ID, fetch the employee details
+          else if (
+            request.employeeId &&
+            typeof request.employeeId === "string"
+          ) {
+            console.log(
+              `Fetching employee details for ID: ${request.employeeId}`
+            );
+            employeeData = await fetchEmployeeDetails(
+              request.employeeId,
+              token
+            );
+          }
+
+          // If still no employee data found, log and use fallback values
+          if (!employeeData) {
+            console.log(`Employee ${request.employeeId} not found in response`);
+          }
+
+          return {
+            _id: request._id || request.id,
+            name: employeeData?.name || "Unknown Employee",
+            email: employeeData?.email || "No Email",
+            department: employeeData?.department || "N/A",
+            status: request.status || "PENDING",
+            role: employeeData?.jobTitle || employeeData?.role || "N/A",
+            aprove: "",
+            deny: "",
+            view: "",
+            reason: request.reason,
+            startDate: request.startDate,
+            endDate: request.endDate,
+            daysCount: request.daysCount,
+            denialReason: request.denialReason,
+            employeeId: request.employeeId,
+            approverId: request.approverId,
+          };
+        })
+      );
+
+      setManageLeaveRequests(transformedData);
+      setIsLoading(false);
+    } catch (err) {
+      console.error("Error fetching leave requests:", err);
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       setIsLoading(false);
     }
   };
 
-  const handleSubmit = () => {
-    router.push("/leaveSubmit");
+  // Fetch leave requests on component mount
+  useEffect(() => {
+    fetchLeaveRequests();
+  }, []);
+
+  const closeModal = () => {
+    setShowViewModal(false);
+    setshowMangeEmployeeModal(false);
+    setShowEditModal(false);
+    setShowDeleteModal(false);
+    setShowApproveModal(false);
+    setSelectedConflict(null);
+    setShowResetPinModal(false);
+    setShowAddUserModal(false);
   };
 
-  const { theme } = useTheme();
+  const handleUserAddSuccess = () => {
+    setShowSuccessNotification(true);
+    setTimeout(() => {
+      setShowSuccessNotification(false);
+    }, 5000);
+  };
 
-  // Show loading while Clerk is checking auth status
-  if (!isLoaded) {
+  const handleDelete = () => {
+    console.log("Deleting employee:", selectedConflict);
+    closeModal();
+  };
+
+  const handleResetPin = () => {
+    console.log("Resetting PIN for user:", selectedConflict);
+    closeModal();
+  };
+
+  const handleExportCSV = () => {
+    // Define CSV headers
+    const headers = ["Name", "Email", "Department", "Role Name"];
+
+    const rows = manageLeaveRequests.map((adminLeaveRequest) => [
+      adminLeaveRequest.name,
+      adminLeaveRequest.email,
+      adminLeaveRequest.department,
+      adminLeaveRequest.role,
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `leaveRequests_${new Date().toISOString().split("T")[0]}.csv`
+    );
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const totalPages = 10;
+
+  // Loading State
+  if (isLoading) {
     return (
       <AppLayout>
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
+          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
+            <div className="text-gray-400 dark:text-gray-500 mb-3">
+              <svg
+                className="animate-spin h-12 w-12 mx-auto"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+            </div>
+            <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">
+              Loading leave requests...
+            </p>
+          </div>
         </div>
       </AppLayout>
     );
   }
 
-  const filteredRequests = leaveRequests.filter((request) => {
-    const matchesSearch =
-      request.date.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.message.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const requestDateStr = request.date.split(" | ")[0];
-    const [day, month, year] = requestDateStr.split("/");
-    const requestDate = new Date(`20${year}-${month}-${day}`);
-
-    let matchesDateRange = true;
-    if (startDate) {
-      const start = new Date(startDate);
-      matchesDateRange = matchesDateRange && requestDate >= start;
-    }
-    if (endDate) {
-      const end = new Date(endDate);
-      matchesDateRange = matchesDateRange && requestDate <= end;
-    }
-
-    const matchesFilter =
-      selectedFilter === "all" ||
-      (selectedFilter === "newest" && true) ||
-      (selectedFilter === "oldest" && true) ||
-      (selectedFilter === "custom" && matchesDateRange);
-
+  // Error State
+  if (error) {
     return (
-      matchesSearch &&
-      (selectedFilter === "custom" ? matchesDateRange : matchesFilter)
+      <AppLayout>
+        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
+          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
+              <X className="h-8 w-8 text-red-600 dark:text-red-400" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              Error Loading Leave Requests
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
+              Unable to load leave requests. Please try again.
+            </p>
+            <button
+              onClick={fetchLeaveRequests}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
+            >
+              <svg
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Retry
+            </button>
+          </div>
+        </div>
+      </AppLayout>
     );
-  });
-
-  const sortedRequests = [...filteredRequests].sort((a, b) => {
-    if (selectedFilter === "newest") {
-      return b.rawDate.getTime() - a.rawDate.getTime();
-    } else if (selectedFilter === "oldest") {
-      return a.rawDate.getTime() - b.rawDate.getTime();
-    }
-    return 0;
-  });
+  }
 
   return (
     <AppLayout>
-      {showToast && (
-        <div className="fixed top-6 right-6 z-50">
-          <div className="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px]">
-            <span className="flex-1">Leave Submitted Successfully</span>
-            <button
-              onClick={() => setShowToast(false)}
-              className="hover:bg-green-700 rounded p-1 transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
+      {/* Success Notification */}
+      {showSuccessNotification && (
+        <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
+          <CheckCircle className="h-5 w-5 flex-shrink-0" />
+          <span className="font-medium text-sm sm:text-base">
+            New employees added successfully
+          </span>
+          <button
+            onClick={() => setShowSuccessNotification(false)}
+            className="ml-2 rounded-full p-1 hover:bg-green-600 flex-shrink-0"
+          >
+            <X className="h-4 w-4 dark:brightness-0 dark:invert" />
+          </button>
         </div>
       )}
 
-      <div className="bg-gray-50 dark:bg-gray-900 p-2">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-5 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center">
-                <img
-                  src="../img/leave.svg"
-                  alt="Department Icon"
-                  className="h-8 w-8 dark:brightness-0 dark:invert"
-                />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-                Leave Requests
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Summit your leave request on the HR Mini
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3 mb-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
-            <input
-              type="text"
-              placeholder="Type or search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 sm:py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm"
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
+            <img
+              src="../img/leave.svg"
+              alt="Leave Request Icon"
+              className="h-6 w-6 dark:brightness-0 dark:invert"
             />
-
-            {showFilterDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10">
-                <div className="p-2">
-                  <button
-                    onClick={() => {
-                      setSelectedFilter("all");
-                      setStartDate("");
-                      setEndDate("");
-                      setShowFilterDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                      selectedFilter === "all"
-                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    All Dates
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedFilter("newest");
-                      setStartDate("");
-                      setEndDate("");
-                      setShowFilterDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                      selectedFilter === "newest"
-                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    Newest First
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedFilter("oldest");
-                      setStartDate("");
-                      setEndDate("");
-                      setShowFilterDropdown(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-md text-sm ${
-                      selectedFilter === "oldest"
-                        ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400"
-                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    Oldest First
-                  </button>
-
-                  <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-
-                  <div className="px-3 py-2">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                      Custom Date Range
-                    </p>
-                    <div className="space-y-2">
-                      <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400">
-                          From
-                        </label>
-                        <input
-                          type="date"
-                          value={startDate}
-                          onChange={(e) => {
-                            setStartDate(e.target.value);
-                            setSelectedFilter("custom");
-                          }}
-                          className="w-full mt-1 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400">
-                          To
-                        </label>
-                        <input
-                          type="date"
-                          value={endDate}
-                          onChange={(e) => {
-                            setEndDate(e.target.value);
-                            setSelectedFilter("custom");
-                          }}
-                          className="w-full mt-1 px-2 py-1.5 text-xs border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
-                      </div>
-                      {(startDate || endDate) && (
-                        <button
-                          onClick={() => {
-                            setStartDate("");
-                            setEndDate("");
-                            setSelectedFilter("all");
-                          }}
-                          className="w-full px-2 py-1.5 text-xs text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-                        >
-                          Clear dates
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
-          <div className="flex gap-8">
-            <button
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors whitespace-nowrap"
-            >
-              <Filter className="w-4 h-4 text-gray-700 dark:text-gray-300" />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filter by
-              </span>
-            </button>
-            <button
-              onClick={() => handleSubmit()}
-              className="px-6 py-2.5 sm:py-3 bg-emerald-500 dark:bg-emerald-600 text-white rounded-lg hover:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors font-medium text-sm whitespace-nowrap"
-            >
-              Submit Leave
-            </button>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Leave Requests Management
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+              Review and manage employee leave requests
+            </p>
           </div>
         </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-          <div className="px-4 sm:px-6 py-4 sm:py-5">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
-              Leave Request Status Tracker
-            </h3>
-          </div>
-
-          <div className="overflow-x-auto">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 px-4">
-                <div className="text-gray-400 dark:text-gray-500 mb-3">
-                  <svg
-                    className="animate-spin h-12 w-12 mx-auto"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">
-                  Loading...
-                </p>
-              </div>
-            ) : sortedRequests.length > 0 ? (
-              <table className="w-full">
-                <thead>
-                  <tr className="border-t border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      Date Summited
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      What it Means
-                    </th>
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                  {sortedRequests.map((request) => (
-                    <tr
-                      key={request.id}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                        {request.date}
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 sm:py-5 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-                        <div className="max-w-xl">{request.message}</div>
-                      </td>
-                      <td className="px-4 sm:px-6 py-4 sm:py-5 whitespace-nowrap">
-                        <button className="flex items-center gap-2 px-3 py-1.5 rounded bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors w-40">
-                          <span
-                            className={`w-2 h-2 rounded-full ${request.statusDot}`}
-                          ></span>
-                          <span
-                            className={`text-xs sm:text-sm font-medium ${request.statusColor}`}
-                          >
-                            {request.status}
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-12 px-4">
-                <div className="text-gray-400 dark:text-gray-500 mb-3">
-                  <svg
-                    className="w-16 h-16 mx-auto"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">
-                  No dates found
-                </p>
-                <p className="text-gray-500 dark:text-gray-500 text-sm mt-1">
-                  Try adjusting your search or filter
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
+        <button
+          onClick={handleExportCSV}
+          className="mr-10 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-600 dark:border-gray-500 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+        >
+          <img
+            src="../img/leftf.svg"
+            alt="Department Icon"
+            className="h-4 w-4 dark:brightness-0 dark:invert"
+          />
+          Export CSV
+        </button>
       </div>
+
+      {/* User Table or Empty State */}
+      {manageLeaveRequests.length === 0 ? (
+        // Empty State
+        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
+          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
+              <img
+                src="../img/leave.svg"
+                alt="Leave Icon"
+                className="h-8 w-8 dark:brightness-0 dark:invert"
+              />
+            </div>
+
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
+              No Leave Requests Yet
+            </h3>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6 px-4">
+              There are no leave requests to review at the moment. New requests
+              will appear here when employees submit them.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto px-4">
+              <button
+                onClick={fetchLeaveRequests}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        // Table with data
+        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
+          <div className="overflow-x-auto">
+            <ManageLeaveRequestTable
+              tableDetails={manageLeaveRequests}
+              onRefresh={fetchLeaveRequests}
+            />
+          </div>
+        </div>
+      )}
     </AppLayout>
   );
 };
 
-export default LeaveRequestContent;
+export default AdminLeaveRequest;
