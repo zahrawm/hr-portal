@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { AppLayout } from "@/components/layout/app";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { useUser, useAuth } from "@clerk/nextjs";
 
@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isSignedIn, isLoaded, user } = useUser();
   const { getToken } = useAuth();
   const [showToast, setShowToast] = useState(false);
@@ -22,6 +23,7 @@ const LeaveRequestContent: React.FC = () => {
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Fetch leave requests whenever searchParams change (including success flag)
   useEffect(() => {
     // Wait for Clerk to load
     if (!isLoaded) return;
@@ -35,19 +37,20 @@ const LeaveRequestContent: React.FC = () => {
       return;
     }
 
-    // Initialize page
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("success") === "true") {
-        setShowToast(true);
+    // Check for success flag
+    const success = searchParams?.get("success");
+    if (success === "true") {
+      setShowToast(true);
+      // Use setTimeout to allow the component to render before clearing URL
+      setTimeout(() => {
         window.history.replaceState({}, "", "/leaveRequests");
-        setTimeout(() => setShowToast(false), 5000);
-      }
+        setShowToast(false);
+      }, 5000);
     }
 
-    // Always fetch leave requests
+    // Fetch leave requests
     fetchLeaveRequests();
-  }, [isLoaded, isSignedIn, router]);
+  }, [isLoaded, isSignedIn, router, searchParams]);
 
   // Refetch when page gains focus (user comes back from submit page)
   useEffect(() => {
@@ -58,20 +61,6 @@ const LeaveRequestContent: React.FC = () => {
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [isLoaded, isSignedIn, user]);
-
-  // Add visibility change listener to refetch when tab becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log("Tab became visible, refetching leave requests...");
-        fetchLeaveRequests();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [isLoaded, isSignedIn, user]);
 
   const fetchLeaveRequests = async () => {
@@ -132,15 +121,16 @@ const LeaveRequestContent: React.FC = () => {
         console.log("Using localStorage token for authentication");
       }
 
-      // Fetch only the current user's leave requests
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}`;
+      // Add timestamp to prevent caching
+      const timestamp = new Date().getTime();
+      const url = `${process.env.NEXT_PUBLIC_API_URL}/leave-requests?employeeId=${userId}&t=${timestamp}`;
       console.log("Fetching from URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
         headers: headers,
         credentials: "include",
-        cache: "no-store", // Force fresh data
+        cache: "no-store",
       });
 
       console.log("Response status:", response.status);
