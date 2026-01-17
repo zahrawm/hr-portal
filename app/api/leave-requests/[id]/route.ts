@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-
 import LeaveRequest from "@/lib/mongodb/models/LeaveRequest";
 import mongoose from "mongoose";
 import connectDB from "@/lib/mongodb/connection";
+import { authenticate } from "@/lib/middleware/auth";
 
 // GET - Fetch a single leave request by ID
 export async function GET(
@@ -11,6 +11,16 @@ export async function GET(
 ) {
   try {
     await connectDB();
+
+    const authResult = await authenticate(req);
+
+    if (!authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || "Unauthorized" },
+        { status: authResult.status }
+      );
+    }
+
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -47,6 +57,16 @@ export async function PATCH(
 ) {
   try {
     await connectDB();
+
+    const authResult = await authenticate(req);
+
+    if (!authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || "Unauthorized" },
+        { status: authResult.status }
+      );
+    }
+
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -59,7 +79,6 @@ export async function PATCH(
     const body = await req.json();
     const updates: any = {};
 
-    // Only update provided fields
     if (body.startDate) updates.startDate = new Date(body.startDate);
     if (body.endDate) updates.endDate = new Date(body.endDate);
     if (body.reason !== undefined) updates.reason = body.reason;
@@ -97,6 +116,16 @@ export async function DELETE(
 ) {
   try {
     await connectDB();
+
+    const authResult = await authenticate(req);
+
+    if (!authResult.user) {
+      return NextResponse.json(
+        { error: authResult.error || "Unauthorized" },
+        { status: authResult.status }
+      );
+    }
+
     const { id } = await params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {

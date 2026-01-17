@@ -1,168 +1,166 @@
-// src/app/api/leave-requests/route.ts
+// FILE 1: src/app/api/leave-requests/route.ts
+// ==============================================
 import { NextRequest, NextResponse } from "next/server";
-
-import LeaveRequest, { LeaveStatus } from "@/lib/mongodb/models/LeaveRequest";
-import { authenticate } from "@/lib/middleware/auth";
+import LeaveRequest from "@/lib/mongodb/models/LeaveRequest";
+import User from "@/lib/mongodb/models/Users";
 import connectDB from "@/lib/mongodb/connection";
+import { authenticate } from "@/lib/middleware/auth";
 
-// GET - Fetch all leave requests with optional filters
+// GET - Fetch leave requests
 export async function GET(req: NextRequest) {
   try {
-    // Authenticate user
+    await connectDB();
+
     const authResult = await authenticate(req);
-    if (authResult.error || !authResult.user) {
+    console.log("Auth Result:", authResult);
+
+    if (!authResult.user) {
       return NextResponse.json(
-        { success: false, message: authResult.error || "Unauthorized" },
+        { error: authResult.error || "Unauthorized" },
         { status: authResult.status }
       );
     }
 
-    await connectDB();
+    const userId = authResult.user.id;
+    console.log("Authenticated user ID:", userId);
 
-    const searchParams = req.nextUrl.searchParams;
+    const { searchParams } = new URL(req.url);
     const employeeId = searchParams.get("employeeId");
-    const status = searchParams.get("status");
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "10");
 
-    const query: any = {};
+    let query: any = {};
 
-    // Check if user is admin or manager - if not, only show their own requests
-    const userRoles = authResult.user.roles.map((r: string) => r.toLowerCase());
-    const isAdminOrManager =
-      userRoles.includes("admin") || userRoles.includes("manager");
-
-    // If not admin/manager, only show their own leave requests
-    if (!isAdminOrManager) {
-      query.employeeId = authResult.user.id;
+    if (employeeId) {
+      query.employeeId = employeeId;
+      console.log("Fetching for employeeId:", employeeId);
+    } else {
+      query.employeeId = userId;
+      console.log("Fetching for authenticated user:", userId);
     }
 
-    // Apply additional filters if provided
-    if (employeeId) query.employeeId = employeeId;
-    if (status) query.status = status;
+    const leaveRequests = await LeaveRequest.find(query)
+      .populate({
+        path: "employeeId",
+        model: "User",
+        select: "name fullName email department jobTitle role",
+      })
+      .sort({ createdAt: -1 })
+      .lean();
 
-    const skip = (page - 1) * limit;
+    console.log(`Found ${leaveRequests.length} leave requests`);
 
-    const [leaveRequests, total] = await Promise.all([
-      LeaveRequest.find(query)
-        .populate("employeeId", "name email department jobTitle")
-        .populate("approverId", "name email")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      LeaveRequest.countDocuments(query),
-    ]);
+    if (!leaveRequests || leaveRequests.length === 0) {
+      return NextResponse.json([]);
+    }
 
-    return NextResponse.json({
-      success: true,
-      data: leaveRequests,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+    const transformedRequests = leaveRequests.map((request: any) => {
+      let employeeData = null;
+
+      if (request.employeeId && typeof request.employeeId === "object") {
+        employeeData = {
+          _id: request.employeeId._id,
+          name:
+            request.employeeId.name || request.employeeId.fullName || "Unknown",
+          email: request.employeeId.email || "Unknown",
+          department: request.employeeId.department || "N/A",
+          jobTitle:
+            request.employeeId.jobTitle || request.employeeId.role || "N/A",
+        };
+      }
+
+      return {
+        _id: request._id,
+        employeeId: employeeData || request.employeeId,
+        status: request.status,
+        reason: request.reason,
+        startDate: request.startDate,
+        endDate: request.endDate,
+        daysCount: request.daysCount,
+        denialReason: request.denialReason,
+        approverId: request.approverId,
+        createdAt: request.createdAt,
+        updatedAt: request.updatedAt,
+      };
     });
+
+    return NextResponse.json(transformedRequests);
   } catch (error: any) {
+    console.error("Error fetching leave requests:", error);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { error: "Failed to fetch leave requests" },
       { status: 500 }
     );
   }
 }
 
-// POST - Create a new leave request
+// POST - Create a leave request
 export async function POST(req: NextRequest) {
   try {
-    // Authenticate user
+    await connectDB();
+
     const authResult = await authenticate(req);
-    if (authResult.error || !authResult.user) {
+
+    if (!authResult.user) {
       return NextResponse.json(
-        { success: false, message: authResult.error || "Unauthorized" },
+        { error: authResult.error || "Unauthorized" },
         { status: authResult.status }
       );
     }
 
-    await connectDB();
-
+    const userId = authResult.user.id;
     const body = await req.json();
     const { startDate, endDate, reason, status } = body;
 
-    console.log("Request body:", body);
-    console.log("Authenticated user:", authResult.user);
-
-    // Validation
-    if (!startDate || !endDate) {
+    if (!startDate || !endDate || !reason) {
       return NextResponse.json(
-        { success: false, error: "Start date and end date are required" },
+        { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    if (!reason || reason.trim().length < 10) {
-      return NextResponse.json(
-        { success: false, error: "Reason must be at least 10 characters long" },
-        { status: 400 }
-      );
-    }
-
-    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
       return NextResponse.json(
-        { success: false, error: "Invalid date format" },
+        { error: "Invalid date format" },
         { status: 400 }
       );
     }
 
     if (end < start) {
       return NextResponse.json(
-        { success: false, error: "End date must be after start date" },
+        { error: "End date must be after start date" },
         { status: 400 }
       );
     }
 
-    // Auto-approve for admin or manager roles
-    const userRoles = authResult.user.roles.map((r: string) => r.toLowerCase());
-    const autoApproveStatus =
-      userRoles.includes("admin") || userRoles.includes("manager")
-        ? LeaveStatus.APPROVED
-        : status || LeaveStatus.PENDING;
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const daysCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-    // Use the authenticated user's ID as employeeId
-    const leaveRequestData = {
-      employeeId: authResult.user.id,
+    const leaveRequest = new LeaveRequest({
+      employeeId: userId,
+      status: status || "PENDING",
+      reason,
       startDate: start,
       endDate: end,
-      reason: reason.trim(),
-      status: autoApproveStatus,
-    };
+      daysCount,
+    });
 
-    console.log("Creating leave request with data:", leaveRequestData);
+    const savedRequest = await leaveRequest.save();
 
-    const leaveRequest = await LeaveRequest.create(leaveRequestData);
+    const populatedRequest = await LeaveRequest.findById(savedRequest._id)
+      .populate({
+        path: "employeeId",
+        model: "User",
+        select: "name fullName email department jobTitle role",
+      })
+      .lean();
 
-    // Populate the employee data before returning
-    await leaveRequest.populate("employeeId", "name email department jobTitle");
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: leaveRequest,
-        message: "Leave request created successfully",
-      },
-      { status: 201 }
-    );
+    return NextResponse.json(populatedRequest, { status: 201 });
   } catch (error: any) {
-    console.error("Leave request creation error:", error);
+    console.error("Error creating leave request:", error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error.message || "Failed to create leave request",
-      },
+      { error: "Failed to create leave request" },
       { status: 500 }
     );
   }
