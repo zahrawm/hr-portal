@@ -1,558 +1,413 @@
 "use client";
+import React, { useState } from "react";
 import {
-  CheckCircle,
+  ChevronDown,
+  Calendar,
+  X,
   ChevronLeft,
   ChevronRight,
-  Download,
-  X,
 } from "lucide-react";
-import React, { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/app";
-import UserTable from "@/components/ui/table";
-import ManageEmployeeTable from "@/components/ui/manage-employee-table";
-import AddEmployeeForm from "@/components/layout/add-employee";
 import { useRouter } from "next/navigation";
-import ManageLeaveRequestTable from "@/components/ui/manage-leave-request-table";
+import { useUser, useAuth } from "@clerk/nextjs";
 
-type ConflictType = adminLeaveRequest | null;
-
-interface adminLeaveRequest {
-  _id?: string;
-  name: string;
-  email: string;
-  department: string;
-  status: string;
-  role: string;
-  aprove?: string;
-  deny?: string;
-  view: string;
-  reason?: string;
-  startDate?: string;
-  endDate?: string;
-  daysCount?: number;
-  denialReason?: string;
-  employeeId?: any;
-  approverId?: any;
-}
-
-const AdminLeaveRequest: React.FC = () => {
+const SubmitLeaveForm: React.FC = () => {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCountry, setSelectedCountry] = useState("Ghana");
-  const [selectedRole, setSelectedRole] = useState("Role");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showApproveModal, setShowApproveModal] = useState(false);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showEditApprovalModal, setShowEditApprovalModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showResetPinModal, setShowResetPinModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedConflict, setSelectedConflict] = useState<ConflictType>(null);
-  const [showSuccessNotification, setShowSuccessNotification] = useState(false);
-  const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null
-  );
-  const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
+  const { isSignedIn, user } = useUser();
+  const { getToken } = useAuth();
+  const [dateRange, setDateRange] = useState("");
+  const [leaveType, setLeaveType] = useState("");
+  const [reason, setReason] = useState("");
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedStartDate, setSelectedStartDate] = useState<Date | null>(null);
+  const [selectedEndDate, setSelectedEndDate] = useState<Date | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // New state for leave requests
-  const [manageLeaveRequests, setManageLeaveRequests] = useState<
-    adminLeaveRequest[]
-  >([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const monthNames = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
-  // Function to fetch employee details by ID
-  const fetchEmployeeDetails = async (employeeId: string, token: string) => {
-    try {
-      console.log(`Fetching details for employee: ${employeeId}`);
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/users/${employeeId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+    const days = [];
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      const prevMonthDay = new Date(year, month, -startingDayOfWeek + i + 1);
+      days.push({ date: prevMonthDay, isCurrentMonth: false });
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({ date: new Date(year, month, i), isCurrentMonth: true });
+    }
+    const remainingDays = 42 - days.length;
+    for (let i = 1; i <= remainingDays; i++) {
+      days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
+    }
+    return days;
+  };
 
-      if (response.ok) {
-        const result = await response.json();
-        console.log(`Employee details response for ${employeeId}:`, result);
-
-        // Handle different response structures
-        let employeeData = null;
-
-        // If result has a users array, find the specific user
-        if (result.users && Array.isArray(result.users)) {
-          console.log(
-            `Searching for ${employeeId} in ${result.users.length} users`
-          );
-
-          // Check if this is a Clerk ID (starts with "user_")
-          const isClerkId = employeeId.startsWith("user_");
-          console.log(`Is Clerk ID: ${isClerkId}`);
-
-          employeeData = result.users.find((u: any) => {
-            // Try matching by _id, id, clerkId, or clerkUserId
-            const match =
-              u._id === employeeId ||
-              u.id === employeeId ||
-              u.clerkId === employeeId ||
-              u.clerkUserId === employeeId ||
-              u.userId === employeeId;
-            if (match) {
-              console.log(`✅ MATCH FOUND:`, u);
-            }
-            return match;
-          });
-
-          if (!employeeData) {
-            console.warn(`❌ Employee ${employeeId} not found.`);
-            console.log(`Sample user structure:`, result.users[0]);
-            console.log(
-              `Available _ids:`,
-              result.users.map((u: any) => u._id).slice(0, 5)
-            );
-            if (isClerkId) {
-              console.log(
-                `Looking for Clerk ID. Available clerkIds:`,
-                result.users
-                  .map((u: any) => u.clerkId || u.clerkUserId)
-                  .filter(Boolean)
-                  .slice(0, 5)
-              );
-            }
-          } else {
-            console.log(`✅ Found employee:`, employeeData);
-          }
-        }
-        // Otherwise try direct access
-        else {
-          employeeData = result.data || result.user || result;
-        }
-
-        if (!employeeData) {
-          console.warn(`Employee ${employeeId} not found in response`);
-          return null;
-        }
-
-        return {
-          name: employeeData.name || employeeData.fullName || "Unknown",
-          email: employeeData.email || "Unknown",
-          department: employeeData.department || "N/A",
-          jobTitle:
-            employeeData.jobTitle ||
-            (Array.isArray(employeeData.role)
-              ? employeeData.role[0]
-              : employeeData.role) ||
-            "N/A",
-        };
+  const handleDateClick = (date: Date) => {
+    if (!selectedStartDate || (selectedStartDate && selectedEndDate)) {
+      setSelectedStartDate(date);
+      setSelectedEndDate(null);
+    } else if (selectedStartDate && !selectedEndDate) {
+      if (date >= selectedStartDate) {
+        setSelectedEndDate(date);
+        const start = selectedStartDate.toLocaleDateString();
+        const end = date.toLocaleDateString();
+        setDateRange(`${start} - ${end}`);
+        setShowCalendar(false);
       } else {
-        console.warn(
-          `Failed to fetch employee ${employeeId}:`,
-          response.status
-        );
-        return null;
+        setSelectedStartDate(date);
+        setSelectedEndDate(null);
       }
-    } catch (error) {
-      console.error(`Error fetching employee ${employeeId}:`, error);
-      return null;
     }
   };
 
-  // Function to fetch leave requests from API
-  const fetchLeaveRequests = async () => {
+  const isDateInRange = (date: Date) => {
+    if (!selectedStartDate) return false;
+    if (!selectedEndDate)
+      return date.toDateString() === selectedStartDate.toDateString();
+    return date >= selectedStartDate && date <= selectedEndDate;
+  };
+
+  const previousMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1)
+    );
+  };
+
+  const nextMonth = () => {
+    setCurrentMonth(
+      new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)
+    );
+  };
+
+  const handleSubmit = async () => {
+    // Validation
+    if (!dateRange) {
+      alert("Please select a date range");
+      return;
+    }
+
+    if (!reason.trim()) {
+      alert("Please provide a reason for leave");
+      return;
+    }
+
+    if (reason.trim().length < 10) {
+      alert("Reason must be at least 10 characters long");
+      return;
+    }
+
+    if (!selectedStartDate || !selectedEndDate) {
+      alert("Please select valid dates");
+      return;
+    }
+
+    setIsSubmitting(true);
+
     try {
-      setIsLoading(true);
-      setError(null);
+      // Get token from localStorage (for old users)
+      const localToken = localStorage.getItem("token");
 
-      const token = localStorage.getItem("token");
+      // Get Clerk token (for new users)
+      let clerkToken = null;
+      if (isSignedIn) {
+        try {
+          clerkToken = await getToken();
+          console.log("Clerk token retrieved successfully");
+        } catch (tokenError) {
+          console.error("Error getting Clerk token:", tokenError);
+          // Try without template as fallback
+          try {
+            clerkToken = await getToken();
+            console.log("Clerk token retrieved with fallback method");
+          } catch (fallbackError) {
+            console.error(
+              "Fallback token retrieval also failed:",
+              fallbackError
+            );
+          }
+        }
+      }
 
-      if (!token) {
+      // Check if user has either token
+      if (!localToken && !clerkToken) {
+        console.error("No authentication token available");
+        alert("Authentication required. Please log in again.");
         router.push("/login");
         return;
       }
 
-      console.log("Fetching leave requests...");
+      const requestData = {
+        startDate: selectedStartDate.toISOString(),
+        endDate: selectedEndDate.toISOString(),
+        reason: reason.trim(),
+        status: "PENDING",
+      };
+
+      console.log("Sending request data:", requestData);
+
+      // Prepare headers
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Better token handling with explicit logging
+      if (clerkToken) {
+        headers["Authorization"] = `Bearer ${clerkToken}`;
+        console.log("Using Clerk token for authentication");
+      } else if (localToken) {
+        headers["Authorization"] = `Bearer ${localToken}`;
+        console.log("Using localStorage token for authentication");
+      } else {
+        console.error("No valid token found despite earlier checks");
+        alert("Authentication error. Please log in again.");
+        router.push("/login");
+        return;
+      }
+
+      console.log("Request headers:", {
+        ...headers,
+        Authorization: "Bearer [REDACTED]",
+      });
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
         {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          method: "POST",
+          headers,
+          body: JSON.stringify(requestData),
+          credentials: "include",
         }
       );
+
+      console.log("Response status:", response.status);
 
       if (!response.ok) {
-        throw new Error("Failed to fetch leave requests");
-      }
+        const data = await response.json();
 
-      const result = await response.json();
-      console.log("Leave requests API response:", result);
+        if (response.status === 401) {
+          console.error("Unauthorized - token may be invalid or expired");
+          alert("Your session has expired. Please log in again.");
 
-      let requestsArray = result;
+          // Clear old tokens
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("userId");
 
-      if (result.data && Array.isArray(result.data)) {
-        requestsArray = result.data;
-      } else if (!Array.isArray(requestsArray)) {
-        requestsArray = [];
-      }
-
-      console.log(`Processing ${requestsArray.length} leave requests`);
-
-      // Fetch employee details for each request
-      const transformedDataPromises = requestsArray.map(
-        async (request: any) => {
-          let employeeDetails = null;
-
-          // Check if employeeId is populated or just a string
-          if (typeof request.employeeId === "string") {
-            // employeeId is just a string, need to fetch employee details
-            console.log(
-              `Employee ID is string: ${request.employeeId}, fetching details...`
-            );
-            employeeDetails = await fetchEmployeeDetails(
-              request.employeeId,
-              token
-            );
-          } else if (
-            request.employeeId &&
-            typeof request.employeeId === "object"
-          ) {
-            // employeeId is already populated
-            console.log(`Employee ID is populated object:`, request.employeeId);
-            employeeDetails = {
-              name:
-                request.employeeId.name ||
-                request.employeeId.fullName ||
-                "Unknown",
-              email: request.employeeId.email || "Unknown",
-              department: request.employeeId.department || "N/A",
-              jobTitle:
-                request.employeeId.jobTitle || request.employeeId.role || "N/A",
-            };
-          }
-
-          return {
-            _id: request._id || request.id,
-            name: employeeDetails?.name || "Unknown",
-            email: employeeDetails?.email || "Unknown",
-            department: employeeDetails?.department || "N/A",
-            status: request.status || "PENDING",
-            role: employeeDetails?.jobTitle || "N/A",
-            aprove: "",
-            deny: "",
-            view: "",
-            reason: request.reason,
-            startDate: request.startDate,
-            endDate: request.endDate,
-            daysCount: request.daysCount,
-            denialReason: request.denialReason,
-            employeeId: employeeDetails
-              ? {
-                  ...employeeDetails,
-                  _id:
-                    typeof request.employeeId === "string"
-                      ? request.employeeId
-                      : request.employeeId?._id,
-                }
-              : request.employeeId,
-            approverId: request.approverId,
-          };
+          router.push("/login");
+          return;
         }
-      );
 
-      const transformedData = await Promise.all(transformedDataPromises);
-      console.log("Transformed leave requests:", transformedData);
+        throw new Error(
+          data.error || data.message || "Failed to submit leave request"
+        );
+      }
 
-      setManageLeaveRequests(transformedData);
-      setIsLoading(false);
-    } catch (err) {
-      console.error("Error fetching leave requests:", err);
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
+      const data = await response.json();
+      console.log("Leave request submitted successfully:", data);
+
+      // Set flag in localStorage to trigger refresh on leave requests page
+      localStorage.setItem("leaveRequestSubmitted", "true");
+
+      // Dispatch custom event to trigger refresh immediately
+      window.dispatchEvent(new Event("refreshLeaveRequests"));
+
+      // Navigate back to Leave Request page with success flag
+      router.push("/leaveRequests?success=true");
+    } catch (error: any) {
+      console.error("Error submitting leave request:", error);
+      alert(
+        error.message || "Failed to submit leave request. Please try again."
       );
-      setIsLoading(false);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  // Fetch leave requests on component mount
-  useEffect(() => {
-    fetchLeaveRequests();
-  }, []);
-
-  const closeModal = () => {
-    setShowViewModal(false);
-    setshowMangeEmployeeModal(false);
-    setShowEditModal(false);
-    setShowDeleteModal(false);
-    setShowApproveModal(false);
-    setSelectedConflict(null);
-    setShowResetPinModal(false);
-    setShowAddUserModal(false);
-  };
-
-  const handleUserAddSuccess = () => {
-    setShowSuccessNotification(true);
-    setTimeout(() => {
-      setShowSuccessNotification(false);
-    }, 5000);
-  };
-
-  const handleDelete = () => {
-    console.log("Deleting employee:", selectedConflict);
-    closeModal();
-  };
-
-  const handleResetPin = () => {
-    console.log("Resetting PIN for user:", selectedConflict);
-    closeModal();
-  };
-
-  const handleExportCSV = () => {
-    // Define CSV headers
-    const headers = [
-      "Name",
-      "Email",
-      "Department",
-      "Role Name",
-      "Status",
-      "Start Date",
-      "End Date",
-      "Days",
-      "Reason",
-    ];
-
-    const rows = manageLeaveRequests.map((adminLeaveRequest) => [
-      adminLeaveRequest.name,
-      adminLeaveRequest.email,
-      adminLeaveRequest.department,
-      adminLeaveRequest.role,
-      adminLeaveRequest.status,
-      adminLeaveRequest.startDate
-        ? new Date(adminLeaveRequest.startDate).toLocaleDateString()
-        : "N/A",
-      adminLeaveRequest.endDate
-        ? new Date(adminLeaveRequest.endDate).toLocaleDateString()
-        : "N/A",
-      adminLeaveRequest.daysCount || "N/A",
-      adminLeaveRequest.reason || "N/A",
-    ]);
-
-    // Combine headers and rows
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
-    ].join("\n");
-
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `leaveRequests_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const totalPages = 10;
-
-  // Loading State
-  if (isLoading) {
-    return (
-      <AppLayout>
-        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
-          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
-            <div className="text-gray-400 dark:text-gray-500 mb-3">
-              <svg
-                className="animate-spin h-12 w-12 mx-auto"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-            </div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">
-              Loading leave requests...
-            </p>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
-  // Error State
-  if (error) {
-    return (
-      <AppLayout>
-        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
-          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900">
-              <X className="h-8 w-8 text-red-600 dark:text-red-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-              Error Loading Leave Requests
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6">
-              Unable to load leave requests. Please try again.
-            </p>
-            <button
-              onClick={fetchLeaveRequests}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#02AA69] px-4 py-2 text-sm font-medium text-white hover:bg-[#029858] transition-colors"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              Retry
-            </button>
-          </div>
-        </div>
-      </AppLayout>
-    );
-  }
-
   return (
     <AppLayout>
-      {/* Success Notification */}
-      {showSuccessNotification && (
-        <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
-          <CheckCircle className="h-5 w-5 flex-shrink-0" />
-          <span className="font-medium text-sm sm:text-base">
-            New employees added successfully
-          </span>
+      <div className="min-h-screen bg-white dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+        {/* Breadcrumb */}
+        <div className="mb-6 sm:mb-8">
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <span
+              onClick={() => router.push("/leaveRequests")}
+              className="hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer"
+            >
+              Leave Request
+            </span>
+            <span>&gt;</span>
+            <span className="text-gray-900 dark:text-white font-medium">
+              Submit Leave
+            </span>
+          </div>
+        </div>
+
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-12 h-12 bg-white dark:bg-gray-700 rounded-xl flex items-center justify-center">
+                <img
+                  src="../img/leave.svg"
+                  alt="Department Icon"
+                  className="h-8 w-8 dark:brightness-0 dark:invert"
+                />
+              </div>
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">
+                Submit Leave
+              </h1>
+            </div>
+          </div>
+        </div>
+
+        {/* Form */}
+        <div className="max-w-6xl">
+          {/* Date Range Field */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+              Date range
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                value={dateRange}
+                onClick={() => setShowCalendar(!showCalendar)}
+                placeholder="Select a date range"
+                readOnly
+                className="w-full px-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm cursor-pointer"
+              />
+              <ChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
+
+              {/* Calendar Popup */}
+              {showCalendar && (
+                <div className="absolute z-10 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 w-full sm:w-96">
+                  {/* Calendar Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={previousMonth}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    >
+                      <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+                    <span className="text-base font-semibold text-gray-900 dark:text-white">
+                      {monthNames[currentMonth.getMonth()]}{" "}
+                      {currentMonth.getFullYear()}
+                    </span>
+                    <button
+                      onClick={nextMonth}
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    >
+                      <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+                    </button>
+                  </div>
+
+                  {/* Day Names */}
+                  <div className="grid grid-cols-7 gap-1 mb-2">
+                    {dayNames.map((day, index) => (
+                      <div
+                        key={`day-name-${index}`}
+                        className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 py-2"
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days */}
+                  <div className="grid grid-cols-7 gap-1">
+                    {getDaysInMonth(currentMonth).map((day, index) => {
+                      const isInRange = isDateInRange(day.date);
+                      const isStart =
+                        selectedStartDate &&
+                        day.date.toDateString() ===
+                          selectedStartDate.toDateString();
+                      const isEnd =
+                        selectedEndDate &&
+                        day.date.toDateString() ===
+                          selectedEndDate.toDateString();
+
+                      return (
+                        <button
+                          key={`calendar-day-${day.date.getFullYear()}-${day.date.getMonth()}-${day.date.getDate()}-${index}`}
+                          onClick={() => handleDateClick(day.date)}
+                          className={`
+                            p-2 text-sm rounded-lg transition-colors
+                            ${
+                              !day.isCurrentMonth
+                                ? "text-gray-300 dark:text-gray-600"
+                                : "text-gray-900 dark:text-white"
+                            }
+                            ${
+                              isInRange
+                                ? "bg-emerald-100 dark:bg-emerald-900/30"
+                                : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                            }
+                            ${
+                              isStart || isEnd
+                                ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                                : ""
+                            }
+                          `}
+                        >
+                          {day.date.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Reason Field */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-gray-900 dark:text-white mb-2">
+              Reason
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Type your reason here."
+              rows={2}
+              className="w-full px-4 py-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400 focus:border-transparent text-sm resize-none"
+            />
+          </div>
+
+          {/* Submit Button */}
           <button
-            onClick={() => setShowSuccessNotification(false)}
-            className="ml-2 rounded-full p-1 hover:bg-green-600 flex-shrink-0"
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+            className="w-full px-6 py-3 sm:py-3.5 bg-emerald-500 dark:bg-emerald-600 text-white rounded-lg hover:bg-emerald-600 dark:hover:bg-emerald-700 transition-colors font-medium text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <X className="h-4 w-4 dark:brightness-0 dark:invert" />
+            {isSubmitting ? "Submitting..." : "Submit Leave"}
           </button>
         </div>
-      )}
-
-      {/* Header Section */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
-            <img
-              src="../img/leave.svg"
-              alt="Leave Request Icon"
-              className="h-6 w-6 dark:brightness-0 dark:invert"
-            />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Leave Requests Management
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Review and manage employee leave requests
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={handleExportCSV}
-          className="mr-10 w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-600 dark:border-gray-500 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-        >
-          <img
-            src="../img/leftf.svg"
-            alt="Department Icon"
-            className="h-4 w-4 dark:brightness-0 dark:invert"
-          />
-          Export CSV
-        </button>
       </div>
-
-      {/* User Table or Empty State */}
-      {manageLeaveRequests.length === 0 ? (
-        // Empty State
-        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
-          <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
-              <img
-                src="../img/leave.svg"
-                alt="Leave Icon"
-                className="h-8 w-8 dark:brightness-0 dark:invert"
-              />
-            </div>
-
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2 text-center">
-              No Leave Requests Yet
-            </h3>
-
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md mb-6 px-4">
-              There are no leave requests to review at the moment. New requests
-              will appear here when employees submit them.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto px-4">
-              <button
-                onClick={fetchLeaveRequests}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                  />
-                </svg>
-                Refresh
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        // Table with data
-        <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
-          <div className="overflow-x-auto">
-            <ManageLeaveRequestTable
-              tableDetails={manageLeaveRequests}
-              onRefresh={fetchLeaveRequests}
-            />
-          </div>
-        </div>
-      )}
     </AppLayout>
   );
 };
 
-export default AdminLeaveRequest;
+export default SubmitLeaveForm;
