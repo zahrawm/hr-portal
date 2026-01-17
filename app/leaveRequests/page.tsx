@@ -21,7 +21,6 @@ const LeaveRequestContent: React.FC = () => {
   const [endDate, setEndDate] = useState("");
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     // Wait for Clerk to load
@@ -43,8 +42,11 @@ const LeaveRequestContent: React.FC = () => {
         setShowToast(true);
         window.history.replaceState({}, "", "/leaveRequests");
         setTimeout(() => setShowToast(false), 5000);
-        // Immediately fetch after success
-        setTimeout(() => fetchLeaveRequests(), 500);
+        // Add a longer delay to ensure backend has processed the request
+        setTimeout(() => {
+          console.log("Fetching after successful submission...");
+          fetchLeaveRequests();
+        }, 1000); // Increased from 500ms to 1000ms
         return;
       }
     }
@@ -57,21 +59,29 @@ const LeaveRequestContent: React.FC = () => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "leaveRequestSubmitted" && e.newValue === "true") {
         console.log("Leave request submitted, refreshing...");
-        fetchLeaveRequests();
+        // Add delay before fetching
+        setTimeout(() => {
+          fetchLeaveRequests();
+        }, 500);
         localStorage.removeItem("leaveRequestSubmitted");
       }
     };
 
     const handleCustomRefresh = () => {
       console.log("Custom refresh event triggered");
-      fetchLeaveRequests();
+      // Add delay before fetching
+      setTimeout(() => {
+        fetchLeaveRequests();
+      }, 500);
     };
 
     // Check on mount if there's a pending refresh
     const checkPendingRefresh = () => {
       if (localStorage.getItem("leaveRequestSubmitted") === "true") {
         console.log("Pending refresh detected on mount");
-        fetchLeaveRequests();
+        setTimeout(() => {
+          fetchLeaveRequests();
+        }, 500);
         localStorage.removeItem("leaveRequestSubmitted");
       }
     };
@@ -110,6 +120,7 @@ const LeaveRequestContent: React.FC = () => {
   }, [isSignedIn, user]);
 
   const fetchLeaveRequests = async () => {
+    console.log("=== FETCHING LEAVE REQUESTS ===");
     setIsLoading(true);
     try {
       const localToken = localStorage.getItem("token");
@@ -203,6 +214,7 @@ const LeaveRequestContent: React.FC = () => {
         : data.leaveRequests || data.data || [];
 
       console.log("Requests array:", requestsArray);
+      console.log("Requests array length:", requestsArray.length);
 
       if (requestsArray.length === 0) {
         console.log("No leave requests found for this user");
@@ -260,6 +272,11 @@ const LeaveRequestContent: React.FC = () => {
       });
 
       console.log("Transformed data:", transformedData);
+      console.log(
+        "Setting leave requests with",
+        transformedData.length,
+        "items"
+      );
       setLeaveRequests(transformedData);
     } catch (error) {
       console.error("Error fetching leave requests:", error);
@@ -267,6 +284,7 @@ const LeaveRequestContent: React.FC = () => {
       setLeaveRequests([]);
     } finally {
       setIsLoading(false);
+      console.log("=== FETCH COMPLETE ===");
     }
   };
 
@@ -325,8 +343,16 @@ const LeaveRequestContent: React.FC = () => {
     } else if (selectedFilter === "oldest") {
       return a.rawDate.getTime() - b.rawDate.getTime();
     }
-    return 0;
+    // Default to newest first when filter is "all"
+    return b.rawDate.getTime() - a.rawDate.getTime();
   });
+
+  console.log(
+    "Rendering component with",
+    leaveRequests.length,
+    "leave requests"
+  );
+  console.log("Sorted requests:", sortedRequests.length);
 
   return (
     <AppLayout>
@@ -540,7 +566,7 @@ const LeaveRequestContent: React.FC = () => {
                 <thead>
                   <tr className="border-t border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                     <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
-                      Date Summited
+                      Date Submitted
                     </th>
                     <th className="px-4 sm:px-6 py-3 text-left text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
                       What it Means
