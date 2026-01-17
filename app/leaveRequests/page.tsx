@@ -5,13 +5,14 @@ import { useTheme } from "next-themes";
 import { AppLayout } from "@/components/layout/app";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 export const dynamic = "force-dynamic";
 
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
   const { isSignedIn, isLoaded, user } = useUser();
+  const { getToken } = useAuth();
   const [showToast, setShowToast] = useState(false);
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -49,20 +50,30 @@ const LeaveRequestContent: React.FC = () => {
 
   const fetchLeaveRequests = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const localToken = localStorage.getItem("token");
 
-      // If no token but user is signed in with Clerk, you might need to get Clerk's token
-      // For now, we'll just check if either auth method exists
-      if (!token && !isSignedIn) {
+      // Get Clerk token if signed in with Clerk
+      let clerkToken = null;
+      if (isSignedIn) {
+        try {
+          clerkToken = await getToken();
+        } catch (error) {
+          console.error("Error getting Clerk token:", error);
+        }
+      }
+
+      // If no auth method available, return
+      if (!localToken && !clerkToken) {
         console.log("No authentication found");
+        setIsLoading(false);
         return;
       }
 
       let userId;
 
-      if (token) {
+      if (localToken) {
         // Decode token to get user ID from localStorage auth
-        const decodedToken: any = jwtDecode(token);
+        const decodedToken: any = jwtDecode(localToken);
         userId = decodedToken.id || decodedToken.userId || decodedToken.sub;
       } else if (isSignedIn && user) {
         // Use Clerk user ID if signed in with Clerk
@@ -75,13 +86,20 @@ const LeaveRequestContent: React.FC = () => {
         return;
       }
 
-      // Prepare headers - only include Authorization if token exists
+      console.log("Fetching leave requests for user:", userId);
+
+      // Prepare headers
       const headers: HeadersInit = {
         "Content-Type": "application/json",
       };
 
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
+      // Add authorization token (prioritize Clerk token for new users)
+      if (clerkToken) {
+        headers.Authorization = `Bearer ${clerkToken}`;
+        console.log("Using Clerk token");
+      } else if (localToken) {
+        headers.Authorization = `Bearer ${localToken}`;
+        console.log("Using localStorage token");
       }
 
       // Fetch only the current user's leave requests
@@ -90,6 +108,7 @@ const LeaveRequestContent: React.FC = () => {
         {
           method: "GET",
           headers: headers,
+          credentials: "include",
         }
       );
 
