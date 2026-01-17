@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/backend": "^2.29.3",
     "@clerk/nextjs": "^6.36.7",
     "@headlessui/react": "^2.2.9",
     "@inertiajs/core": "^2.2.15",

@@ -14,7 +14,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 const SubmitLeaveForm: React.FC = () => {
   const router = useRouter();
   const { isSignedIn, user } = useUser();
-  const { getToken } = useAuth(); // Add this to get Clerk token
+  const { getToken } = useAuth();
   const [dateRange, setDateRange] = useState("");
   const [leaveType, setLeaveType] = useState("");
   const [reason, setReason] = useState("");
@@ -49,16 +49,13 @@ const SubmitLeaveForm: React.FC = () => {
     const startingDayOfWeek = firstDay.getDay();
 
     const days = [];
-    // Previous month days
     for (let i = 0; i < startingDayOfWeek; i++) {
       const prevMonthDay = new Date(year, month, -startingDayOfWeek + i + 1);
       days.push({ date: prevMonthDay, isCurrentMonth: false });
     }
-    // Current month days
     for (let i = 1; i <= daysInMonth; i++) {
       days.push({ date: new Date(year, month, i), isCurrentMonth: true });
     }
-    // Next month days
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       days.push({ date: new Date(year, month + 1, i), isCurrentMonth: false });
@@ -120,6 +117,11 @@ const SubmitLeaveForm: React.FC = () => {
       return;
     }
 
+    if (!selectedStartDate || !selectedEndDate) {
+      alert("Please select valid dates");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -129,17 +131,30 @@ const SubmitLeaveForm: React.FC = () => {
       // Get Clerk token (for new users)
       let clerkToken = null;
       if (isSignedIn) {
-        clerkToken = await getToken();
+        try {
+          // FIXED: Added template parameter to specify JWT template
+          clerkToken = await getToken({ template: "default" });
+          console.log("Clerk token retrieved successfully");
+        } catch (tokenError) {
+          console.error("Error getting Clerk token:", tokenError);
+          // Try without template as fallback
+          try {
+            clerkToken = await getToken();
+            console.log("Clerk token retrieved with fallback method");
+          } catch (fallbackError) {
+            console.error(
+              "Fallback token retrieval also failed:",
+              fallbackError
+            );
+          }
+        }
       }
 
       // Check if user has either token
       if (!localToken && !clerkToken) {
+        console.error("No authentication token available");
+        alert("Authentication required. Please log in again.");
         router.push("/login");
-        return;
-      }
-
-      if (!selectedStartDate || !selectedEndDate) {
-        alert("Please select valid dates");
         return;
       }
 
@@ -157,14 +172,24 @@ const SubmitLeaveForm: React.FC = () => {
         "Content-Type": "application/json",
       };
 
-      // Prioritize Clerk token for new users, fall back to localStorage token for old users
+      // FIXED: Better token handling with explicit logging
       if (clerkToken) {
         headers["Authorization"] = `Bearer ${clerkToken}`;
-        console.log("Using Clerk token");
+        console.log("Using Clerk token for authentication");
       } else if (localToken) {
         headers["Authorization"] = `Bearer ${localToken}`;
-        console.log("Using localStorage token");
+        console.log("Using localStorage token for authentication");
+      } else {
+        console.error("No valid token found despite earlier checks");
+        alert("Authentication error. Please log in again.");
+        router.push("/login");
+        return;
       }
+
+      console.log("Request headers:", {
+        ...headers,
+        Authorization: "Bearer [REDACTED]",
+      });
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/leave-requests`,
@@ -178,12 +203,29 @@ const SubmitLeaveForm: React.FC = () => {
 
       console.log("Response status:", response.status);
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to submit leave request");
+        const data = await response.json();
+
+        // FIXED: Better error handling for 401
+        if (response.status === 401) {
+          console.error("Unauthorized - token may be invalid or expired");
+          alert("Your session has expired. Please log in again.");
+
+          // Clear old tokens
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+          localStorage.removeItem("userId");
+
+          router.push("/login");
+          return;
+        }
+
+        throw new Error(
+          data.error || data.message || "Failed to submit leave request"
+        );
       }
 
+      const data = await response.json();
       console.log("Leave request submitted successfully:", data);
 
       // Navigate back to Leave Request page with success flag

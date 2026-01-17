@@ -15,7 +15,7 @@ export interface IUser extends Document {
   role: UserRole[]; // Permission role (ADMIN/MANAGER/EMPLOYEE)
   jobTitle?: string; // Job title (Backend Developer, Frontend Developer, etc.)
   department?: string; // Department (Operations, CyberSecurity, etc.)
-  clerkId?: string; // Clerk authentication ID
+  // clerkId?: string; // Clerk authentication ID
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -55,12 +55,12 @@ const userSchema = new Schema<IUser>(
       type: String,
       trim: true,
     },
-    clerkId: {
-      type: String,
-      unique: true,
-      sparse: true, // Allows null values while maintaining uniqueness for non-null values
-      trim: true,
-    },
+    // clerkId: {
+    //   type: String,
+    //   unique: true,
+    //   sparse: true, // Allows null values while maintaining uniqueness for non-null values
+    //   trim: true,
+    // },
     isActive: {
       type: Boolean,
       default: true,
@@ -73,7 +73,7 @@ const userSchema = new Schema<IUser>(
 
 // Create indexes
 userSchema.index({ email: 1 });
-userSchema.index({ clerkId: 1 });
+// userSchema.index({ clerkId: 1 });
 
 const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", userSchema);
