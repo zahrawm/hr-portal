@@ -89,11 +89,19 @@ const AdminLeaveRequest: React.FC = () => {
           console.log(
             `Searching for ${employeeId} in ${result.users.length} users`
           );
+
+          // Check if this is a Clerk ID (starts with "user_")
+          const isClerkId = employeeId.startsWith("user_");
+          console.log(`Is Clerk ID: ${isClerkId}`);
+
           employeeData = result.users.find((u: any) => {
+            // Try matching by _id, id, clerkId, or clerkUserId
             const match =
               u._id === employeeId ||
               u.id === employeeId ||
-              u.clerkId === employeeId;
+              u.clerkId === employeeId ||
+              u.clerkUserId === employeeId ||
+              u.userId === employeeId;
             if (match) {
               console.log(`✅ MATCH FOUND:`, u);
             }
@@ -101,10 +109,21 @@ const AdminLeaveRequest: React.FC = () => {
           });
 
           if (!employeeData) {
-            console.warn(
-              `❌ Employee ${employeeId} not found. Available IDs:`,
+            console.warn(`❌ Employee ${employeeId} not found.`);
+            console.log(`Sample user structure:`, result.users[0]);
+            console.log(
+              `Available _ids:`,
               result.users.map((u: any) => u._id).slice(0, 5)
             );
+            if (isClerkId) {
+              console.log(
+                `Looking for Clerk ID. Available clerkIds:`,
+                result.users
+                  .map((u: any) => u.clerkId || u.clerkUserId)
+                  .filter(Boolean)
+                  .slice(0, 5)
+              );
+            }
           } else {
             console.log(`✅ Found employee:`, employeeData);
           }
