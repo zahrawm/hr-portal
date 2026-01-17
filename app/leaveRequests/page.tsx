@@ -42,12 +42,10 @@ const LeaveRequestContent: React.FC = () => {
         setShowToast(true);
         window.history.replaceState({}, "", "/leaveRequests");
         setTimeout(() => setShowToast(false), 5000);
-        // Fetch leave requests when redirected back with success
-        fetchLeaveRequests();
-        return;
       }
     }
 
+    // Always fetch leave requests
     fetchLeaveRequests();
   }, [isLoaded, isSignedIn, router]);
 
@@ -60,6 +58,20 @@ const LeaveRequestContent: React.FC = () => {
 
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
+  }, [isLoaded, isSignedIn, user]);
+
+  // Add visibility change listener to refetch when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("Tab became visible, refetching leave requests...");
+        fetchLeaveRequests();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, [isLoaded, isSignedIn, user]);
 
   const fetchLeaveRequests = async () => {
@@ -128,6 +140,7 @@ const LeaveRequestContent: React.FC = () => {
         method: "GET",
         headers: headers,
         credentials: "include",
+        cache: "no-store", // Force fresh data
       });
 
       console.log("Response status:", response.status);
