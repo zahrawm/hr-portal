@@ -11,13 +11,13 @@ export enum LeaveStatus {
 
 export interface ILeaveRequest extends Document {
   _id: string;
-  employeeId: mongoose.Types.ObjectId;
+  employeeId: string; // ✅ Changed from mongoose.Types.ObjectId to string
   // Leave type field
   status: LeaveStatus;
   startDate: Date;
   endDate: Date;
   reason?: string;
-  approverId?: mongoose.Types.ObjectId;
+  approverId?: mongoose.Types.ObjectId | string; // ✅ Also updated this for consistency
   approvedAt?: Date;
   denialReason?: string;
   daysCount: number;
@@ -28,8 +28,7 @@ export interface ILeaveRequest extends Document {
 const leaveRequestSchema = new Schema<ILeaveRequest>(
   {
     employeeId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+      type: String, // ✅ Changed from Schema.Types.ObjectId to String
       required: [true, "User ID is required"],
     },
 
@@ -57,8 +56,7 @@ const leaveRequestSchema = new Schema<ILeaveRequest>(
       trim: true,
     },
     approverId: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
+      type: String, // ✅ Changed from Schema.Types.ObjectId to String
     },
     approvedAt: {
       type: Date,
