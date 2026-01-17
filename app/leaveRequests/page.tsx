@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { AppLayout } from "@/components/layout/app";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import { useUser, useAuth } from "@clerk/nextjs";
 
@@ -11,7 +11,6 @@ export const dynamic = "force-dynamic";
 
 const LeaveRequestContent: React.FC = () => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isSignedIn, isLoaded, user } = useUser();
   const { getToken } = useAuth();
   const [showToast, setShowToast] = useState(false);
@@ -22,8 +21,8 @@ const LeaveRequestContent: React.FC = () => {
   const [endDate, setEndDate] = useState("");
   const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Fetch leave requests whenever searchParams change (including success flag)
   useEffect(() => {
     // Wait for Clerk to load
     if (!isLoaded) return;
@@ -37,31 +36,41 @@ const LeaveRequestContent: React.FC = () => {
       return;
     }
 
-    // Check for success flag
-    const success = searchParams?.get("success");
-    if (success === "true") {
-      setShowToast(true);
-      // Use setTimeout to allow the component to render before clearing URL
-      setTimeout(() => {
+    // Initialize page
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("success") === "true") {
+        setShowToast(true);
         window.history.replaceState({}, "", "/leaveRequests");
-        setShowToast(false);
-      }, 5000);
+        setTimeout(() => setShowToast(false), 5000);
+      }
     }
 
-    // Fetch leave requests
     fetchLeaveRequests();
-  }, [isLoaded, isSignedIn, router, searchParams]);
+  }, [isLoaded, isSignedIn, router, refreshTrigger]);
 
   // Refetch when page gains focus (user comes back from submit page)
   useEffect(() => {
     const handleFocus = () => {
       console.log("Page focused, refetching leave requests...");
-      fetchLeaveRequests();
+      setRefreshTrigger((prev) => prev + 1);
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log("Tab became visible, refetching leave requests...");
+        setRefreshTrigger((prev) => prev + 1);
+      }
     };
 
     window.addEventListener("focus", handleFocus);
-    return () => window.removeEventListener("focus", handleFocus);
-  }, [isLoaded, isSignedIn, user]);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   const fetchLeaveRequests = async () => {
     setIsLoading(true);
