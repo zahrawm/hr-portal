@@ -79,16 +79,56 @@ const AdminLeaveRequest: React.FC = () => {
 
       if (response.ok) {
         const result = await response.json();
-        console.log(`Employee details for ${employeeId}:`, result);
+        console.log(`Employee details response for ${employeeId}:`, result);
 
         // Handle different response structures
-        const employeeData = result.data || result.user || result;
+        let employeeData = null;
+
+        // If result has a users array, find the specific user
+        if (result.users && Array.isArray(result.users)) {
+          console.log(
+            `Searching for ${employeeId} in ${result.users.length} users`
+          );
+          employeeData = result.users.find((u: any) => {
+            const match =
+              u._id === employeeId ||
+              u.id === employeeId ||
+              u.clerkId === employeeId;
+            if (match) {
+              console.log(`✅ MATCH FOUND:`, u);
+            }
+            return match;
+          });
+
+          if (!employeeData) {
+            console.warn(
+              `❌ Employee ${employeeId} not found. Available IDs:`,
+              result.users.map((u: any) => u._id).slice(0, 5)
+            );
+          } else {
+            console.log(`✅ Found employee:`, employeeData);
+          }
+        }
+        // Otherwise try direct access
+        else {
+          employeeData = result.data || result.user || result;
+        }
+
+        if (!employeeData) {
+          console.warn(`Employee ${employeeId} not found in response`);
+          return null;
+        }
 
         return {
           name: employeeData.name || employeeData.fullName || "Unknown",
           email: employeeData.email || "Unknown",
           department: employeeData.department || "N/A",
-          jobTitle: employeeData.jobTitle || employeeData.role || "N/A",
+          jobTitle:
+            employeeData.jobTitle ||
+            (Array.isArray(employeeData.role)
+              ? employeeData.role[0]
+              : employeeData.role) ||
+            "N/A",
         };
       } else {
         console.warn(
