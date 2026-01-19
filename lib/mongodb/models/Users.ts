@@ -9,12 +9,13 @@ export enum UserRole {
 
 export interface IUser extends Document {
   _id: string;
+  clerkId?: string; // ✅ NEW: Clerk user ID (optional for users who login via Clerk)
   email: string;
-  password: string;
+  password?: string; // ✅ Make optional for Clerk users
   name: string;
-  role: UserRole[]; // Permission role (ADMIN/MANAGER/EMPLOYEE)
-  jobTitle: string; // Job title (Backend Developer, Frontend Developer, etc.)
-  department: string; // Department (Operations, CyberSecurity, etc.)
+  role: UserRole[];
+  jobTitle: string;
+  department: string;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +23,13 @@ export interface IUser extends Document {
 
 const userSchema = new Schema<IUser>(
   {
+    clerkId: {
+      // ✅ NEW FIELD
+      type: String,
+      unique: true,
+      sparse: true, // Allow null/undefined values to be non-unique
+      trim: true,
+    },
     email: {
       type: String,
       required: [true, "Email is required"],
@@ -32,7 +40,10 @@ const userSchema = new Schema<IUser>(
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
+      required: function (this: IUser) {
+        // Only required if clerkId is not present
+        return !this.clerkId;
+      },
       minlength: [6, "Password must be at least 6 characters"],
       select: false,
     },
@@ -47,12 +58,10 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(UserRole),
     },
     jobTitle: {
-      // NEW FIELD
       type: String,
       trim: true,
     },
     department: {
-      // NEW FIELD
       type: String,
       trim: true,
     },
@@ -65,6 +74,9 @@ const userSchema = new Schema<IUser>(
     timestamps: true,
   }
 );
+
+// Index for faster lookups
+userSchema.index({ clerkId: 1 });
 
 const User: Model<IUser> =
   mongoose.models.User || mongoose.model<IUser>("User", userSchema);

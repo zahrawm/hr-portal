@@ -1,9 +1,102 @@
 // src/app/api/leave-requests/route.ts
 import { NextRequest, NextResponse } from "next/server";
-
 import LeaveRequest, { LeaveStatus } from "@/lib/mongodb/models/LeaveRequest";
+import User from "@/lib/mongodb/models/Users";
 import { authenticate } from "@/lib/middleware/auth";
 import connectDB from "@/lib/mongodb/connection";
+import { clerkClient } from "@clerk/nextjs/server";
+
+// ✅ ENHANCED: Helper function to find user and auto-sync from Clerk if needed
+async function findUserByIdentifier(identifier: string) {
+  if (!identifier) {
+    console.log("❌ No identifier provided");
+    return null;
+  }
+
+  console.log(`🔍 Looking up user with identifier: "${identifier}"`);
+
+  // Try finding by clerkId first (for Clerk users)
+  let user = await User.findOne({ clerkId: identifier })
+    .select("name email department role jobTitle clerkId")
+    .lean();
+
+  if (user) {
+    console.log(`✅ Found user by clerkId:`, {
+      name: user.name,
+      email: user.email,
+      clerkId: user.clerkId,
+    });
+    return user;
+  }
+
+  console.log(`⚠️ User not found by clerkId: "${identifier}"`);
+
+  // ✅ NEW: If identifier looks like a Clerk ID and user not found, try to sync from Clerk
+  if (identifier.startsWith("user_")) {
+    console.log(`🔄 Attempting to sync Clerk user: ${identifier}`);
+    try {
+      const client = await clerkClient();
+      const clerkUser = await client.users.getUser(identifier);
+
+      if (clerkUser) {
+        console.log(`📥 Found user in Clerk, syncing to MongoDB...`);
+
+        // Create the user in MongoDB
+        const newUser = await User.create({
+          clerkId: identifier,
+          name:
+            `${clerkUser.firstName || ""} ${clerkUser.lastName || ""}`.trim() ||
+            "Clerk User",
+          email:
+            clerkUser.emailAddresses[0]?.emailAddress || "no-email@clerk.user",
+          role: ["EMPLOYEE"],
+          department: "Not Assigned",
+          jobTitle: "Not Assigned",
+          isActive: true,
+        });
+
+        console.log(`✅ Successfully synced Clerk user to MongoDB:`, {
+          _id: newUser._id,
+          clerkId: newUser.clerkId,
+          name: newUser.name,
+          email: newUser.email,
+        });
+
+        return newUser.toObject();
+      }
+    } catch (clerkError) {
+      console.error(`❌ Failed to sync from Clerk:`, clerkError);
+      // Continue to other lookup methods
+    }
+  }
+
+  // If not found and identifier looks like MongoDB ObjectId, try finding by _id (for normal signup)
+  if (identifier.match(/^[0-9a-fA-F]{24}$/)) {
+    console.log(`🔍 Trying MongoDB _id lookup...`);
+    user = await User.findById(identifier)
+      .select("name email department role jobTitle clerkId")
+      .lean();
+
+    if (user) {
+      console.log(`✅ Found user by MongoDB _id:`, {
+        name: user.name,
+        email: user.email,
+      });
+      return user;
+    }
+  }
+
+  console.log(`❌ User not found with identifier: "${identifier}"`);
+
+  // DEBUG: Show what users exist (limit logging after first few failures)
+  const allUsers = await User.find()
+    .select("clerkId name email")
+    .limit(5)
+    .lean();
+  console.log(`📋 Sample users in database:`, allUsers);
+
+  return null;
+}
 
 // GET - Fetch all leave requests with optional filters
 export async function GET(req: NextRequest) {
@@ -48,10 +141,45 @@ export async function GET(req: NextRequest) {
       LeaveRequest.countDocuments(query),
     ]);
 
-    // ✅ Return leave requests WITHOUT populated data
+    console.log(`📊 Found ${leaveRequests.length} leave requests`);
+
+    // ✅ OPTIMIZED: Populate employee data with auto-sync
+    const populatedRequests = await Promise.all(
+      leaveRequests.map(async (request) => {
+        const employee = await findUserByIdentifier(request.employeeId);
+
+        return {
+          _id: request._id,
+          employeeId: request.employeeId,
+          status: request.status,
+          startDate: request.startDate,
+          endDate: request.endDate,
+          reason: request.reason,
+          daysCount: request.daysCount,
+          denialReason: request.denialReason,
+          approverId: request.approverId,
+          approvedAt: request.approvedAt,
+          createdAt: request.createdAt,
+          updatedAt: request.updatedAt,
+          // Employee fields at root level
+          name: employee?.name || "Unknown Employee",
+          email: employee?.email || "No Email",
+          department: employee?.department || "N/A",
+          role: Array.isArray(employee?.role)
+            ? employee.role[0]
+            : employee?.role || "N/A",
+          jobTitle: employee?.jobTitle || "N/A",
+        };
+      })
+    );
+
+    console.log(
+      `✅ Successfully populated ${populatedRequests.length} requests`
+    );
+
     return NextResponse.json({
       success: true,
-      data: leaveRequests,
+      data: populatedRequests,
       pagination: {
         page,
         limit,
@@ -60,6 +188,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error: any) {
+    console.error("❌ Leave requests fetch error:", error);
     return NextResponse.json(
       { success: false, error: error.message },
       { status: 500 }
@@ -120,8 +249,11 @@ export async function POST(req: NextRequest) {
         ? LeaveStatus.APPROVED
         : status || LeaveStatus.PENDING;
 
+    // ✅ ENSURE: User exists in MongoDB before creating leave request
+    await findUserByIdentifier(authResult.user.id);
+
     const leaveRequestData = {
-      employeeId: authResult.user.id,
+      employeeId: authResult.user.id, // Works for both Clerk ID and MongoDB ID
       startDate: start,
       endDate: end,
       reason: reason.trim(),
@@ -130,11 +262,22 @@ export async function POST(req: NextRequest) {
 
     const leaveRequest = await LeaveRequest.create(leaveRequestData);
 
-    // ✅ Return WITHOUT populate
+    // Fetch employee data for response
+    const employee = await findUserByIdentifier(authResult.user.id);
+
     return NextResponse.json(
       {
         success: true,
-        data: leaveRequest,
+        data: {
+          ...leaveRequest.toObject(),
+          name: employee?.name || "Unknown Employee",
+          email: employee?.email || "No Email",
+          department: employee?.department || "N/A",
+          role: Array.isArray(employee?.role)
+            ? employee.role[0]
+            : employee?.role || "N/A",
+          jobTitle: employee?.jobTitle || "N/A",
+        },
         message: "Leave request created successfully",
       },
       { status: 201 }

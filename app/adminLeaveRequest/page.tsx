@@ -55,52 +55,13 @@ const AdminLeaveRequest: React.FC = () => {
   );
   const [showManageEmployeeModal, setshowMangeEmployeeModal] = useState(false);
 
-  // New state for leave requests
   const [manageLeaveRequests, setManageLeaveRequests] = useState<
     adminLeaveRequest[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Function to fetch employee details by ID
-  // // In your React component
-  const fetchEmployeeDetails = async (employeeId: string, token: string) => {
-    try {
-      // Option A: If your API supports querying by clerkId
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/employees?clerkId=${employeeId}`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      // OR Option B: Use a dedicated endpoint
-      // const response = await fetch(
-      //   `${process.env.NEXT_PUBLIC_API_URL}/employees/by-clerk-id/${employeeId}`,
-      //   ...
-      // );
-
-      if (response.ok) {
-        const result = await response.json();
-        // Handle if result is an array (from query) or single object
-        const employee = Array.isArray(result) ? result[0] : result;
-        console.log(`✅ Employee found:`, employee);
-        return employee;
-      } else {
-        console.warn(
-          `❌ Employee ${employeeId} not found. Status: ${response.status}`
-        );
-        return null;
-      }
-    } catch (error) {
-      console.error(`Error fetching employee ${employeeId}:`, error);
-      return null;
-    }
-  };
-  // Function to fetch leave requests from API
+  // ✅ Simplified function to fetch leave requests
   const fetchLeaveRequests = async () => {
     try {
       setIsLoading(true);
@@ -130,77 +91,49 @@ const AdminLeaveRequest: React.FC = () => {
       const result = await response.json();
       console.log("📥 Raw API Response:", result);
 
-      let requestsArray = result;
+      let requestsArray = result.data || result;
 
-      if (result.data && Array.isArray(result.data)) {
-        requestsArray = result.data;
-      } else if (!Array.isArray(requestsArray)) {
+      if (!Array.isArray(requestsArray)) {
+        console.error("❌ Response is not an array:", requestsArray);
         requestsArray = [];
       }
 
       console.log("📋 Leave Requests Array:", requestsArray);
+      console.log("🔍 First request structure:", requestsArray[0]);
 
-      // Transform data with employee details fetching
-      const transformedData = await Promise.all(
-        requestsArray.map(async (request: any) => {
-          let employeeData = null;
+      // ✅ Data is already transformed by backend - just map it directly
+      const transformedData = requestsArray.map((request: any) => {
+        console.log("🔄 Processing request:", {
+          id: request._id,
+          name: request.name,
+          email: request.email,
+          department: request.department,
+          status: request.status,
+        });
 
-          console.log("🔍 Processing request:", {
-            requestId: request._id,
-            employeeId: request.employeeId,
-            employeeIdType: typeof request.employeeId,
-          });
-
-          // First, check if employeeId is populated (object)
-          if (request.employeeId && typeof request.employeeId === "object") {
-            console.log("✅ Employee already populated:", request.employeeId);
-            employeeData = request.employeeId;
-          }
-          // If employeeId is just a string ID, fetch the employee details
-          else if (
-            request.employeeId &&
-            typeof request.employeeId === "string"
-          ) {
-            console.log(
-              `🔎 Fetching employee details for ID: ${request.employeeId}`
-            );
-            employeeData = await fetchEmployeeDetails(
-              request.employeeId,
-              token
-            );
-          }
-
-          // If still no employee data found, log and use fallback values
-          if (!employeeData) {
-            console.warn(
-              `⚠️ No employee data found for request ${request._id}, employeeId: ${request.employeeId}`
-            );
-          } else {
-            console.log("✅ Employee data retrieved:", employeeData);
-          }
-
-          return {
-            _id: request._id || request.id,
-            name: employeeData?.name || "Unknown Employee",
-            email: employeeData?.email || "No Email",
-            department: employeeData?.department || "N/A",
-            status: request.status || "PENDING",
-            role: employeeData?.role || "N/A",
-            aprove: "",
-            deny: "",
-            view: "",
-            reason: request.reason,
-            startDate: request.startDate,
-            endDate: request.endDate,
-            daysCount: request.daysCount,
-            denialReason: request.denialReason,
-            employeeId: request.employeeId,
-            approverId: request.approverId,
-          };
-        })
-      );
+        return {
+          _id: request._id,
+          name: request.name || "Unknown Employee",
+          email: request.email || "No Email",
+          department: request.department || "N/A",
+          status: request.status || "PENDING",
+          role: request.role || "N/A",
+          aprove: "",
+          deny: "",
+          view: "",
+          reason: request.reason || "",
+          startDate: request.startDate,
+          endDate: request.endDate,
+          daysCount: request.daysCount || 0,
+          denialReason: request.denialReason || "",
+          employeeId: request.employeeId,
+          approverId: request.approverId,
+        };
+      });
 
       console.log("✅ Transformed Data:", transformedData);
+      console.log("✅ First transformed item:", transformedData[0]);
+
       setManageLeaveRequests(transformedData);
       setIsLoading(false);
     } catch (err) {
@@ -246,23 +179,33 @@ const AdminLeaveRequest: React.FC = () => {
   };
 
   const handleExportCSV = () => {
-    // Define CSV headers
-    const headers = ["Name", "Email", "Department", "Role Name"];
+    const headers = [
+      "Name",
+      "Email",
+      "Department",
+      "Role Name",
+      "Status",
+      "Start Date",
+      "End Date",
+      "Days",
+    ];
 
     const rows = manageLeaveRequests.map((adminLeaveRequest) => [
       adminLeaveRequest.name,
       adminLeaveRequest.email,
       adminLeaveRequest.department,
       adminLeaveRequest.role,
+      adminLeaveRequest.status,
+      adminLeaveRequest.startDate || "",
+      adminLeaveRequest.endDate || "",
+      adminLeaveRequest.daysCount?.toString() || "",
     ]);
 
-    // Combine headers and rows
     const csvContent = [
       headers.join(","),
       ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
     ].join("\n");
 
-    // Create blob and download
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
@@ -270,7 +213,7 @@ const AdminLeaveRequest: React.FC = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `leaveRequests_${new Date().toISOString().split("T")[0]}.csv`
+      `leave_requests_${new Date().toISOString().split("T")[0]}.csv`
     );
     link.style.visibility = "hidden";
 
@@ -360,7 +303,6 @@ const AdminLeaveRequest: React.FC = () => {
 
   return (
     <AppLayout>
-      {/* Success Notification */}
       {showSuccessNotification && (
         <div className="fixed right-4 top-4 z-50 flex items-center gap-3 rounded-lg bg-green-500 px-4 py-3 text-white shadow-lg max-w-md">
           <CheckCircle className="h-5 w-5 flex-shrink-0" />
@@ -376,7 +318,6 @@ const AdminLeaveRequest: React.FC = () => {
         </div>
       )}
 
-      {/* Header Section */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800 flex-shrink-0">
@@ -408,9 +349,7 @@ const AdminLeaveRequest: React.FC = () => {
         </button>
       </div>
 
-      {/* User Table or Empty State */}
       {manageLeaveRequests.length === 0 ? (
-        // Empty State
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="flex flex-col items-center justify-center py-12 sm:py-20 px-4">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800">
@@ -454,7 +393,6 @@ const AdminLeaveRequest: React.FC = () => {
           </div>
         </div>
       ) : (
-        // Table with data
         <div className="overflow-hidden rounded-lg bg-white dark:bg-gray-900 shadow">
           <div className="overflow-x-auto">
             <ManageLeaveRequestTable
