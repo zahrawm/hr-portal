@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { ChevronDown, ChevronUp, LogOutIcon, Menu, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -32,6 +32,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
   const pathname = usePathname();
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { isSignedIn, isLoaded: clerkLoaded, user: clerkUser } = useUser();
+  const { signOut } = useAuth();
 
   const navLinks: NavLink[] = [
     {
@@ -212,6 +213,19 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
     );
   }, [userRoles]);
 
+  const handleLogout = async () => {
+    // Clear localStorage
+    localStorage.clear();
+
+    // Sign out from Clerk if user is signed in
+    if (isSignedIn) {
+      await signOut();
+    }
+
+    // Redirect to home
+    window.location.href = "/";
+  };
+
   // Don't render sidebar if not authenticated or still checking
   if (!isAuthenticated || isChecking || !clerkLoaded || !isLoaded) {
     return null;
@@ -353,10 +367,7 @@ export function Sidebar({ isOpen, setIsOpen, user }: SidebarProps) {
                 <div className="py-1">
                   <div className="py-1 border-t border-gray-200 dark:border-gray-700">
                     <button
-                      onClick={() => {
-                        localStorage.clear();
-                        window.location.href = "/";
-                      }}
+                      onClick={handleLogout}
                       className="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       Log out
