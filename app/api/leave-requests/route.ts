@@ -8,7 +8,6 @@ import connectDB from "@/lib/mongodb/connection";
 // GET - Fetch all leave requests with optional filters
 export async function GET(req: NextRequest) {
   try {
-    // Authenticate user
     const authResult = await authenticate(req);
     if (authResult.error || !authResult.user) {
       return NextResponse.json(
@@ -27,17 +26,14 @@ export async function GET(req: NextRequest) {
 
     const query: any = {};
 
-    // Check if user is admin or manager - if not, only show their own requests
     const userRoles = authResult.user.roles.map((r: string) => r.toLowerCase());
     const isAdminOrManager =
       userRoles.includes("admin") || userRoles.includes("manager");
 
-    // If not admin/manager, only show their own leave requests
     if (!isAdminOrManager) {
       query.employeeId = authResult.user.id;
     }
 
-    // Apply additional filters if provided
     if (employeeId) query.employeeId = employeeId;
     if (status) query.status = status;
 
@@ -45,8 +41,6 @@ export async function GET(req: NextRequest) {
 
     const [leaveRequests, total] = await Promise.all([
       LeaveRequest.find(query)
-        .populate("employeeId", "name email department jobTitle")
-        .populate("approverId", "name email")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -54,6 +48,7 @@ export async function GET(req: NextRequest) {
       LeaveRequest.countDocuments(query),
     ]);
 
+    // ✅ Return leave requests WITHOUT populated data
     return NextResponse.json({
       success: true,
       data: leaveRequests,
@@ -75,7 +70,6 @@ export async function GET(req: NextRequest) {
 // POST - Create a new leave request
 export async function POST(req: NextRequest) {
   try {
-    // Authenticate user
     const authResult = await authenticate(req);
     if (authResult.error || !authResult.user) {
       return NextResponse.json(
@@ -89,10 +83,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { startDate, endDate, reason, status } = body;
 
-    console.log("Request body:", body);
-    console.log("Authenticated user:", authResult.user);
-
-    // Validation
     if (!startDate || !endDate) {
       return NextResponse.json(
         { success: false, error: "Start date and end date are required" },
@@ -107,7 +97,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -125,14 +114,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Auto-approve for admin or manager roles
     const userRoles = authResult.user.roles.map((r: string) => r.toLowerCase());
     const autoApproveStatus =
       userRoles.includes("admin") || userRoles.includes("manager")
         ? LeaveStatus.APPROVED
         : status || LeaveStatus.PENDING;
 
-    // Use the authenticated user's ID as employeeId
     const leaveRequestData = {
       employeeId: authResult.user.id,
       startDate: start,
@@ -141,13 +128,9 @@ export async function POST(req: NextRequest) {
       status: autoApproveStatus,
     };
 
-    console.log("Creating leave request with data:", leaveRequestData);
-
     const leaveRequest = await LeaveRequest.create(leaveRequestData);
 
-    // Populate the employee data before returning
-    await leaveRequest.populate("employeeId", "name email department jobTitle");
-
+    // ✅ Return WITHOUT populate
     return NextResponse.json(
       {
         success: true,
