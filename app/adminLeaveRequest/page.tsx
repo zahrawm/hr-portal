@@ -77,9 +77,12 @@ const AdminLeaveRequest: React.FC = () => {
 
       if (response.ok) {
         const employee = await response.json();
+        console.log(`✅ Employee found:`, employee);
         return employee;
       } else {
-        console.warn(`❌ Employee ${employeeId} not found.`);
+        console.warn(
+          `❌ Employee ${employeeId} not found. Status: ${response.status}`
+        );
         return null;
       }
     } catch (error) {
@@ -116,6 +119,7 @@ const AdminLeaveRequest: React.FC = () => {
       }
 
       const result = await response.json();
+      console.log("📥 Raw API Response:", result);
 
       let requestsArray = result;
 
@@ -125,13 +129,22 @@ const AdminLeaveRequest: React.FC = () => {
         requestsArray = [];
       }
 
+      console.log("📋 Leave Requests Array:", requestsArray);
+
       // Transform data with employee details fetching
       const transformedData = await Promise.all(
         requestsArray.map(async (request: any) => {
           let employeeData = null;
 
+          console.log("🔍 Processing request:", {
+            requestId: request._id,
+            employeeId: request.employeeId,
+            employeeIdType: typeof request.employeeId,
+          });
+
           // First, check if employeeId is populated (object)
           if (request.employeeId && typeof request.employeeId === "object") {
+            console.log("✅ Employee already populated:", request.employeeId);
             employeeData = request.employeeId;
           }
           // If employeeId is just a string ID, fetch the employee details
@@ -140,7 +153,7 @@ const AdminLeaveRequest: React.FC = () => {
             typeof request.employeeId === "string"
           ) {
             console.log(
-              `Fetching employee details for ID: ${request.employeeId}`
+              `🔎 Fetching employee details for ID: ${request.employeeId}`
             );
             employeeData = await fetchEmployeeDetails(
               request.employeeId,
@@ -150,7 +163,11 @@ const AdminLeaveRequest: React.FC = () => {
 
           // If still no employee data found, log and use fallback values
           if (!employeeData) {
-            console.log(`Employee ${request.employeeId} not found in response`);
+            console.warn(
+              `⚠️ No employee data found for request ${request._id}, employeeId: ${request.employeeId}`
+            );
+          } else {
+            console.log("✅ Employee data retrieved:", employeeData);
           }
 
           return {
@@ -159,7 +176,7 @@ const AdminLeaveRequest: React.FC = () => {
             email: employeeData?.email || "No Email",
             department: employeeData?.department || "N/A",
             status: request.status || "PENDING",
-            role: employeeData?.jobTitle || employeeData?.role || "N/A",
+            role: employeeData?.role || "N/A",
             aprove: "",
             deny: "",
             view: "",
@@ -174,10 +191,11 @@ const AdminLeaveRequest: React.FC = () => {
         })
       );
 
+      console.log("✅ Transformed Data:", transformedData);
       setManageLeaveRequests(transformedData);
       setIsLoading(false);
     } catch (err) {
-      console.error("Error fetching leave requests:", err);
+      console.error("❌ Error fetching leave requests:", err);
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
       );
