@@ -63,10 +63,12 @@ const AdminLeaveRequest: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Function to fetch employee details by ID
+  // // In your React component
   const fetchEmployeeDetails = async (employeeId: string, token: string) => {
     try {
+      // Option A: If your API supports querying by clerkId
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/employees/${employeeId}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/employees?clerkId=${employeeId}`,
         {
           method: "GET",
           headers: {
@@ -75,8 +77,16 @@ const AdminLeaveRequest: React.FC = () => {
         }
       );
 
+      // OR Option B: Use a dedicated endpoint
+      // const response = await fetch(
+      //   `${process.env.NEXT_PUBLIC_API_URL}/employees/by-clerk-id/${employeeId}`,
+      //   ...
+      // );
+
       if (response.ok) {
-        const employee = await response.json();
+        const result = await response.json();
+        // Handle if result is an array (from query) or single object
+        const employee = Array.isArray(result) ? result[0] : result;
         console.log(`✅ Employee found:`, employee);
         return employee;
       } else {
@@ -90,7 +100,6 @@ const AdminLeaveRequest: React.FC = () => {
       return null;
     }
   };
-
   // Function to fetch leave requests from API
   const fetchLeaveRequests = async () => {
     try {
