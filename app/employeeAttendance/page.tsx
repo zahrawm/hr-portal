@@ -47,7 +47,7 @@ const EmployeeAttendace: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedConflict, setSelectedConflict] = useState<ConflictType>(null);
   const [openDropdownIndex, setOpenDropdownIndex] = useState<number | null>(
-    null
+    null,
   );
 
   const [attendance, setAttendance] = useState<Attendance[]>([]);
@@ -115,7 +115,7 @@ const EmployeeAttendace: React.FC = () => {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `attendance_${new Date().toISOString().split("T")[0]}.csv`
+      `attendance_${new Date().toISOString().split("T")[0]}.csv`,
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -128,7 +128,6 @@ const EmployeeAttendace: React.FC = () => {
   };
 
   const totalPages = 10;
-  console.log("Here are the attendance and the error", attendance, error);
 
   return (
     <>

@@ -4,12 +4,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ModeToggle } from "@/components/theme/ThemeSwitcher";
 import axios from "axios";
-import { SignInButton, SignOutButton, useUser } from "@clerk/nextjs";
+import { SignInButton, SignOutButton, useUser, useAuth } from "@clerk/nextjs";
 
 export default function SignupForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const { isSignedIn, user, isLoaded } = useUser();
+  const { getToken } = useAuth();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -23,11 +24,40 @@ export default function SignupForm() {
 
   // Redirect Clerk users immediately after sign in
   useEffect(() => {
-    if (isLoaded && isSignedIn && user) {
-      console.log("Clerk user signed in, redirecting...");
-      router.push("/leaveRequests");
-    }
-  }, [isSignedIn, isLoaded, user, router]);
+    const logClerkData = async () => {
+      if (isLoaded && isSignedIn && user) {
+        console.log("Clerk user signed in, redirecting...");
+
+        try {
+          // Get the Clerk session token
+          const sessionToken = await getToken();
+          localStorage.setItem("token", sessionToken || "");
+          // Log Clerk user credentials/data
+          console.log("Clerk User Data:", {
+            id: user.id,
+            email: user.emailAddresses[0]?.emailAddress,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            fullName: user.fullName,
+            username: user.username,
+            imageUrl: user.imageUrl,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+            primaryEmailAddress: user.primaryEmailAddress,
+            sessionToken: sessionToken, // The JWT token
+            // Full user object (contains everything)
+            fullUserObject: user,
+          });
+        } catch (error) {
+          console.error("Error getting Clerk token:", error);
+        }
+
+        router.push("/leaveRequests");
+      }
+    };
+
+    logClerkData();
+  }, [isLoaded, isSignedIn, user, router, getToken]);
 
   const validateEmail = (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,7 +119,7 @@ export default function SignupForm() {
   };
 
   const handleConfirmPasswordChange = (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = e.target.value;
     setConfirmPassword(value);
@@ -120,7 +150,7 @@ export default function SignupForm() {
 
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/auth/signup`,
-        payload
+        payload,
       );
 
       console.log(response.data);
@@ -132,7 +162,7 @@ export default function SignupForm() {
         // Store user ID separately for filtering attendance
         localStorage.setItem(
           "userId",
-          response.data.user._id || response.data.user.id
+          response.data.user._id || response.data.user.id,
         );
 
         // Navigate based on user role
@@ -405,7 +435,36 @@ export default function SignupForm() {
 
           {/* Clerk Sign In Button */}
           <div className="w-full">
-            {isSignedIn ? (
+            {!isLoaded ? (
+              // Show loading state while Clerk is initializing
+              <button
+                type="button"
+                disabled
+                className="w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2.5 rounded-lg flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+              >
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Loading...
+              </button>
+            ) : isSignedIn ? (
               <div className="text-center">
                 <p className="text-gray-600 dark:text-gray-400 mb-2">
                   Welcome {user.firstName}!

@@ -67,88 +67,92 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
     try {
       const token = localStorage.getItem("token");
 
+      console.log("Token from localStorage:", token ? "Found" : "NOT FOUND");
+      console.log("All localStorage keys:", Object.keys(localStorage));
+
+      if (!token) {
+        console.error("No token found in localStorage!");
+        console.error("Available keys:", Object.keys(localStorage));
+        setData([]);
+        onDataChange?.([]);
+        return;
+      }
+
+      console.log("Fetching attendance data with token...");
+
+      // FIX: Add slash before attendance in URL
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}attendance`,
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance`,
         {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
-      if (response.ok) {
-        const result = await response.json();
+      console.log("Response status:", response.status);
 
-        if (result.success && result.data && result.data.length > 0) {
-          // Get current user's ID from token
-          const tokenPayload = token
-            ? JSON.parse(atob(token.split(".")[1]))
-            : null;
-          const currentUserId = tokenPayload?.id;
+      if (!response.ok) {
+        console.error("Failed to fetch attendance:", response.status);
+        setData([]);
+        onDataChange?.([]);
+        return;
+      }
 
-          // Filter to show only current user's records
-          const userRecords = result.data.filter(
-            (record: any) =>
-              record.userId?._id === currentUserId ||
-              record.userId === currentUserId
-          );
+      const result = await response.json();
+      console.log("Attendance API response:", result);
 
-          if (userRecords.length === 0) {
-            setData([]);
-            onDataChange?.([]);
-            return;
-          }
-          const transformedData = userRecords.map((record: any) => {
-            const clockInTime = new Date(record.clockIn);
-            const clockOutTime = record.clockOut
-              ? new Date(record.clockOut)
-              : null;
+      // FIX: Handle the new response format (array of records)
+      const attendanceRecords = Array.isArray(result)
+        ? result
+        : result.data || [];
 
-            let duration = "In Progress";
-            if (clockOutTime) {
-              const diffMs = clockOutTime.getTime() - clockInTime.getTime();
-              const hours = Math.floor(diffMs / (1000 * 60 * 60));
-              const minutes = Math.floor(
-                (diffMs % (1000 * 60 * 60)) / (1000 * 60)
-              );
-              duration = `${hours}h ${minutes}m`;
-            }
-            return {
-              id: record._id,
-              timestamp: new Date(record.date).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "2-digit",
-              }),
+      if (attendanceRecords.length === 0) {
+        setData([]);
+        onDataChange?.([]);
+        return;
+      }
 
-              clockIn: clockInTime.toLocaleTimeString("en-US", {
+      const transformedData = attendanceRecords.map((record: any) => {
+        const clockInTime = new Date(record.clockIn);
+        const clockOutTime = record.clockOut ? new Date(record.clockOut) : null;
+
+        let duration = "In Progress";
+        if (clockOutTime) {
+          const diffMs = clockOutTime.getTime() - clockInTime.getTime();
+          const hours = Math.floor(diffMs / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+          duration = `${hours}h ${minutes}m`;
+        }
+
+        return {
+          id: record._id,
+          timestamp: new Date(record.date).toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "2-digit",
+          }),
+          clockIn: clockInTime.toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }),
+          duration: duration,
+          clockOut: clockOutTime
+            ? clockOutTime.toLocaleTimeString("en-US", {
                 hour: "2-digit",
                 minute: "2-digit",
                 hour12: true,
-              }),
-              duration: duration,
-              clockOut: clockOutTime
-                ? clockOutTime.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                : "Not yet",
-            };
-          });
+              })
+            : "Not yet",
+        };
+      });
 
-          setData(transformedData);
-          onDataChange?.(transformedData);
-        } else {
-          setData([]);
-          onDataChange?.([]);
-        }
-      } else {
-        setData([]);
-        onDataChange?.([]);
-      }
+      console.log("Transformed data:", transformedData);
+      setData(transformedData);
+      onDataChange?.(transformedData);
     } catch (error) {
       console.error("Error fetching attendance:", error);
       setData([]);
@@ -171,7 +175,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
       }
       // Search all fields when filterBy is "all"
       return Object.values(record).some((value) =>
-        value.toLowerCase().includes(searchTerm.toLowerCase())
+        value.toLowerCase().includes(searchTerm.toLowerCase()),
       );
     });
   }, [data, searchTerm, filterBy]);
@@ -185,9 +189,19 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
   const handleClockIn = async () => {
     try {
       const token = localStorage.getItem("token");
+      console.log("Clock In - Token found:", token ? "YES" : "NO");
+      console.log("All localStorage:", Object.keys(localStorage));
 
+      if (!token) {
+        console.error("No token in localStorage!");
+        setToastMessage("No authentication token. Please login again.");
+        setShowToast(true);
+        return;
+      }
+
+      console.log("Sending clock in request...");
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}attendance`,
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance`,
         {
           method: "POST",
           headers: {
@@ -195,17 +209,19 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ action: "clockIn" }),
-        }
+        },
       );
 
+      console.log("Response status:", response.status);
       const result = await response.json();
+      console.log("Response data:", result);
 
-      if (result.success) {
+      if (response.ok) {
         setToastMessage("Clocked In successfully!");
         setShowToast(true);
         await fetchData();
       } else {
-        setToastMessage(result.message || "Failed to clock in");
+        setToastMessage(result.error || result.message || "Failed to clock in");
         setShowToast(true);
       }
     } catch (error) {
@@ -218,8 +234,16 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
   const handleClockOut = async () => {
     try {
       const token = localStorage.getItem("token");
+
+      if (!token) {
+        setToastMessage("Authentication required");
+        setShowToast(true);
+        return;
+      }
+
+      // FIX: Add slash before attendance in URL
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}attendance`,
+        `${process.env.NEXT_PUBLIC_API_URL}/attendance`,
         {
           method: "POST",
           headers: {
@@ -227,17 +251,17 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ action: "clockOut" }),
-        }
+        },
       );
 
       const result = await response.json();
 
-      if (result.success) {
+      if (result.success || response.ok) {
         setToastMessage("Clocked Out successfully!");
         setShowToast(true);
         await fetchData();
       } else {
-        setToastMessage(result.message || "Failed to clock out");
+        setToastMessage(result.error || "Failed to clock out");
         setShowToast(true);
       }
     } catch (error) {
@@ -284,24 +308,11 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
         id: "actions",
         header: "",
         cell: () => (
-          <div className="flex items-center gap-2">
-            {/* <button
-              onClick={handleClockIn}
-              className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Clock In
-            </button> */}
-            {/* <button
-              onClick={handleClockOut}
-              className="rounded-lg border border-black dark:border-white bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-black dark:text-white hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Clock Out
-            </button> */}
-          </div>
+          <div className="flex items-center gap-2">{/* Empty for now */}</div>
         ),
       },
     ],
-    []
+    [],
   );
 
   const table = useReactTable({
@@ -407,7 +418,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
                         ? null
                         : flexRender(
                             header.column.columnDef.header,
-                            header.getContext()
+                            header.getContext(),
                           )}
                     </th>
                   ))}
@@ -424,7 +435,7 @@ const AttendanceTable = ({ onDataChange }: AttendanceTableProps) => {
                     <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
                       {flexRender(
                         cell.column.columnDef.cell,
-                        cell.getContext()
+                        cell.getContext(),
                       )}
                     </td>
                   ))}

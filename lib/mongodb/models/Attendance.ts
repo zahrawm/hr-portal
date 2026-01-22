@@ -3,7 +3,7 @@ export { default as User } from "./Users";
 
 export interface IAttendance extends Document {
   _id: string;
-  userId: mongoose.Types.ObjectId;
+  userId: string; // ✅ Changed from mongoose.Types.ObjectId to string
   date: Date;
   clockIn: Date;
   clockOut?: Date;
@@ -15,9 +15,8 @@ export interface IAttendance extends Document {
 const attendanceSchema = new Schema<IAttendance>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
+      type: String, // ✅ Changed from Schema.Types.ObjectId to String
       required: [true, "User ID is required"],
-      ref: "User", // FIXED: Added back the reference
     },
     date: {
       type: Date,
@@ -48,7 +47,7 @@ const attendanceSchema = new Schema<IAttendance>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 attendanceSchema.index({ userId: 1, date: 1 }, { unique: true });
